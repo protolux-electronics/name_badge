@@ -38,9 +38,10 @@ defmodule NameBadge.Application do
         # Starts a worker by calling: Target.Worker.start_link(arg)
         # {Target.Worker, arg},
         NameBadge.Display,
+        NameBadge.Socket,
         {Task,
          fn ->
-           Process.sleep(10_000)
+           Process.sleep(2_000)
            Circuits.GPIO.open("WIFI_EN", :output, initial_value: 0)
          end}
       ]

@@ -34,6 +34,9 @@ defmodule NameBadge.MixProject do
       {:shoehorn, "~> 0.9.1"},
       {:ring_logger, "~> 0.11.0"},
       {:toolshed, "~> 0.4.0"},
+      {:slipstream, "~> 1.2"},
+      {:req, "~> 0.5"},
+      {:dither, github: "protolux-electronics/dither"},
 
       # Allow Nerves.Runtime on host to support development, testing and CI.
       # See config/host.exs for usage.

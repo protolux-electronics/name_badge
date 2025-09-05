@@ -18,6 +18,9 @@ config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
 
 config :nerves, source_date_epoch: "1753482945"
 
+config :name_badge, NameBadge.Socket,
+  uri: System.get_env("REMOTE_URI") || raise("environment variable `REMOTE_URI` was not set")
+
 if Mix.target() == :host do
   import_config "host.exs"
 else
