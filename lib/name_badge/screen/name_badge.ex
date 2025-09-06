@@ -15,27 +15,40 @@ defmodule NameBadge.Screen.NameBadge do
     """
   end
 
-  def render(assigns) do
+  def render(%{config: nil, qr_code: qr_code}) do
     """
     #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
-        image(height: 80%, format: "svg", bytes("#{assigns.qr_code}")),
+      stack(dir: ttb, spacing: 12pt,
+        image(height: 80%, format: "svg", bytes("#{qr_code}")),
         v(8pt),
         text(size: 24pt, font: "New Amsterdam", "No configuration found"),
-        text(size: 24pt, font: "New Amsterdam", "Scan QR code to set up"),
+        text(size: 24pt, font: "New Amsterdam", "Scan to set up"),
       )
     );
     """
   end
 
+  def render(%{config: config}) do
+    """
+    #place(center + horizon,
+      text(font: "New Amsterdam", size: #{config["name_size"]}pt, "#{config["first_name"]} #{config["last_name"]}"),
+    );
+    """
+  end
+
   def init(_args) do
+    config = NameBadge.Config.load_config()
+
     cond do
+      not is_nil(config) ->
+        {:ok, %{config: config}}
+
       Socket.connected?() ->
         token =
-          :crypto.strong_rand_bytes(20)
-          |> Base.url_encode64()
+          :crypto.strong_rand_bytes(16)
+          |> Base.encode16()
 
-        Socket.join_config(token, %{first_name: "Gus", last_name: "Workman"})
+        Socket.join_config(token, %{})
 
         url = "https://#{base_url()}/device/#{token}/config"
 
@@ -46,7 +59,7 @@ defmodule NameBadge.Screen.NameBadge do
           |> QRCode.create()
           |> QRCode.render()
 
-        {:ok, %{qr_code: encode(qr_code_svg), token: token}}
+        {:ok, %{qr_code: encode(qr_code_svg), token: token, config: nil}}
 
       true ->
         {:ok, %{connected: false}}
@@ -54,7 +67,7 @@ defmodule NameBadge.Screen.NameBadge do
   end
 
   def handle_button(_, 0, screen) do
-    Socket.leave_config(screen.assigns.token)
+    if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
 
     {:render, navigate(screen, :back)}
   end

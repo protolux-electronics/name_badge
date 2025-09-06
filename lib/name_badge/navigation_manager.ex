@@ -122,7 +122,7 @@ defmodule NameBadge.NavigationManager do
                 #set align(center + horizon)
                 #text(size: 16pt, weight: "bold", font: "New Amsterdam", "A")
               ],
-              align(horizon, text(size: 16pt, font: "New Amsterdam", "<%= @button_hints.a %>"))
+              align(horizon, text(size: 20pt, font: "New Amsterdam", "<%= @button_hints.a %>"))
             ),
           <% end %>
 
@@ -132,7 +132,7 @@ defmodule NameBadge.NavigationManager do
                 #set align(center + horizon)
                 #text(size: 16pt, weight: "bold", font: "New Amsterdam", "B")
               ],
-              align(horizon, text(size: 16pt, font: "New Amsterdam", "<%= @button_hints.b %>"))
+              align(horizon, text(size: 20pt, font: "New Amsterdam", "<%= @button_hints.b %>"))
             )
           <% end %>
         )
