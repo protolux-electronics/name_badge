@@ -20,8 +20,9 @@ config :nerves, :firmware,
 
 config :nerves, source_date_epoch: "1753482945"
 
-config :name_badge, NameBadge.Socket,
-  uri: System.get_env("REMOTE_URI") || raise("environment variable `REMOTE_URI` was not set")
+config :name_badge,
+       :base_url,
+       System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
 config :rustler_precompiled, :force_build, typst: true
 

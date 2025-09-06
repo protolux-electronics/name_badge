@@ -4,10 +4,12 @@ defmodule NameBadge.Socket do
   require Logger
 
   def join_gallery(), do: GenServer.call(__MODULE__, :join_gallery)
-  def join_config(), do: GenServer.call(__MODULE__, :join_config)
+
+  def join_config(token, config \\ %{}),
+    do: GenServer.call(__MODULE__, {:join_config, token, config})
 
   def leave_gallery(), do: GenServer.call(__MODULE__, :leave_gallery)
-  def leave_config(), do: GenServer.call(__MODULE__, :leave_config)
+  def leave_config(token), do: GenServer.call(__MODULE__, {:leave_config, token})
 
   def connected?(), do: GenServer.call(__MODULE__, :connected?)
 
@@ -39,13 +41,20 @@ defmodule NameBadge.Socket do
   end
 
   @impl Slipstream
+  def handle_message("config:" <> _token, "apply", config, socket) do
+    Logger.info("Received new configuration! #{inspect(config)}")
+
+    {:ok, socket}
+  end
+
+  @impl Slipstream
   def handle_call(:join_gallery, _from, socket) do
     {:reply, :ok, join(socket, "device_gallery")}
   end
 
   @impl Slipstream
-  def handle_call(:join_config, _from, socket) do
-    {:reply, :ok, join(socket, "config:" <> Nerves.Runtime.serial_number())}
+  def handle_call({:join_config, token, config}, _from, socket) do
+    {:reply, :ok, join(socket, "config:" <> token, config)}
   end
 
   @impl Slipstream
@@ -54,12 +63,12 @@ defmodule NameBadge.Socket do
   end
 
   @impl Slipstream
-  def handle_call(:leave_config, _from, socket) do
-    {:reply, :ok, leave(socket, "config:" <> Nerves.Runtime.serial_number())}
+  def handle_call({:leave_config, token}, _from, socket) do
+    {:reply, :ok, leave(socket, "config:" <> token)}
   end
 
   @impl Slipstream
   def handle_call(:connected?, _from, socket), do: {:reply, connected?(socket), socket}
 
-  defp config, do: Application.get_env(:name_badge, __MODULE__)
+  defp config, do: [uri: "wss://#{Application.get_env(:name_badge, :base_url)}/device/websocket"]
 end

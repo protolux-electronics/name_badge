@@ -38,6 +38,7 @@ defmodule NameBadge.MixProject do
       {:req, "~> 0.5"},
       {:dither, github: "protolux-electronics/dither"},
       {:typst, github: "gworkman/typst"},
+      {:qr_code, "~> 3.2.0"},
 
       # Allow Nerves.Runtime on host to support development, testing and CI.
       # See config/host.exs for usage.
