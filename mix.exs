@@ -50,6 +50,9 @@ defmodule NameBadge.MixProject do
       {:circuits_gpio, "~> 2.0", targets: @all_targets},
       {:eink, path: "../eink", targets: @all_targets},
 
+      # nerves hub
+      {:nerves_hub_link, "~> 2.8", targets: @all_targets},
+
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
       # bumps to Nerves systems. Since these include Linux kernel and Erlang

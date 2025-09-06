@@ -93,3 +93,17 @@ config :mdns_lite,
 # Uncomment to use target specific configurations
 
 # import_config "#{Mix.target()}.exs"
+
+product_key =
+  System.get_env("NH_PRODUCT_KEY") || raise "environment variable `NH_PRODUCT_KEY` was not set"
+
+product_secret =
+  System.get_env("NH_PRODUCT_SECRET") ||
+    raise "environment variable `NH_PRODUCT_SECRET` was not set"
+
+config :nerves_hub_link,
+  host: "manage.nervescloud.com",
+  shared_secret: [
+    product_key: product_key,
+    product_secret: product_secret
+  ]
