@@ -1,5 +1,43 @@
 defmodule NameBadge.Battery do
-  def voltage() do
+  use GenServer
+
+  def start_link(args), do: GenServer.start_link(__MODULE__, args, name: __MODULE__)
+
+  def voltage(), do: GenServer.call(__MODULE__, :get_voltage)
+
+  def charging?() do
+    # consider the device charging when input voltage is 4.5V or
+    # greater (as required by USB spec)
+    voltage() > 4.5
+  end
+
+  @impl true
+  def init(opts) do
+    interval = Keyword.get(opts, :interval, 500)
+    alpha = Keyword.get(opts, :alpha, 0.9)
+
+    timer = :timer.send_interval(interval, :update)
+
+    {:ok, %{interval: interval, alpha: alpha, timer: timer, voltage: read_voltage()}}
+  end
+
+  @impl true
+  def handle_call(:get_voltage, _from, state) do
+    {:reply, state.voltage, state}
+  end
+
+  @impl true
+  def handle_info(:update, state) do
+    # low pass filter (exponential average)
+    state =
+      update_in(state.voltage, fn v ->
+        v * state.alpha + read_voltage() * (1 - state.alpha)
+      end)
+
+    {:noreply, state}
+  end
+
+  defp read_voltage do
     adc_raw =
       "/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
       |> File.read!()
@@ -12,11 +50,5 @@ defmodule NameBadge.Battery do
     # (the units cancel in this equation)
 
     adc_raw / 4095.0 * 1.8 * 9.8823529412
-  end
-
-  def charging?() do
-    # consider the device charging when input voltage is 4.5V or
-    # greater (as required by USB spec)
-    voltage() > 4.5
   end
 end

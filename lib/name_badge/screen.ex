@@ -18,5 +18,7 @@ defmodule NameBadge.Screen do
     do: %{screen | assigns: Map.put(screen.assigns, key, value)}
 
   def navigate(%__MODULE__{} = screen, :back), do: Map.put(screen, :action, :back)
-  def navigate(%__MODULE__{} = screen, module), do: Map.put(screen, :action, {:navigate, module})
+
+  def navigate(%__MODULE__{} = screen, module, params \\ []),
+    do: Map.put(screen, :action, {:navigate, module, params})
 end

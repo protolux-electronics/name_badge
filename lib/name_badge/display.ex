@@ -39,6 +39,8 @@ defmodule NameBadge.Display do
     EInk.clear(eink, :white)
     EInk.draw(eink, initial_frame)
 
+    Process.sleep(5_000)
+
     {:ok, %{eink: eink}}
   end
 
