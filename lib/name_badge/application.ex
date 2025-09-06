@@ -34,11 +34,9 @@ defmodule NameBadge.Application do
   else
     defp target_children() do
       [
-        # Children for all targets except host
-        # Starts a worker by calling: Target.Worker.start_link(arg)
-        # {Target.Worker, arg},
         NameBadge.Display,
         NameBadge.Socket,
+        {NameBadge.NavigationManager, button_a: "BTN_1", button_b: "BTN_2"},
         {Task,
          fn ->
            Process.sleep(2_000)

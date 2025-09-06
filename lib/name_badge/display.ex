@@ -20,9 +20,21 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
+    # initial_frame =
+    #   Application.app_dir(:name_badge, "priv/soleil.bin")
+    #   |> File.read!()
+
     initial_frame =
-      Application.app_dir(:name_badge, "priv/soleil.bin")
-      |> File.read!()
+      """
+      #set page(width: 400pt, height: 300pt)
+      #place(center + horizon, image("images/logos.svg", width: 300pt))
+      """
+      |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
+      |> List.first()
+      |> Dither.decode!()
+      |> Dither.grayscale!()
+      |> Dither.to_raw!()
+      |> pack_bits()
 
     EInk.clear(eink, :white)
     EInk.draw(eink, initial_frame)

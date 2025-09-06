@@ -37,6 +37,7 @@ defmodule NameBadge.MixProject do
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
       {:dither, github: "protolux-electronics/dither"},
+      {:typst, github: "gworkman/typst"},
 
       # Allow Nerves.Runtime on host to support development, testing and CI.
       # See config/host.exs for usage.
