@@ -18,7 +18,14 @@ defmodule NameBadge.Screen.TopLevel do
 
   def init(_opts) do
     {name, _module} = Enum.at(@screens, 0)
-    {:ok, %{screen_index: 0, screens: @screens, current_screen_name: name}}
+
+    {:ok,
+     %{
+       screen_index: 0,
+       screens: @screens,
+       current_screen_name: name,
+       button_hints: %{a: "Next page", b: "Select page"}
+     }}
   end
 
   def handle_button("BTN_1", 0, screen) do

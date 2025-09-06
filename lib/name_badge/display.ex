@@ -7,8 +7,8 @@ defmodule NameBadge.Display do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def draw(image) do
-    GenServer.call(__MODULE__, {:draw, image})
+  def draw(image, opts \\ []) do
+    GenServer.call(__MODULE__, {:draw, image, opts})
   end
 
   def init(_opts) do
@@ -44,9 +44,9 @@ defmodule NameBadge.Display do
     {:ok, %{eink: eink}}
   end
 
-  def handle_call({:draw, image}, _from, state) do
+  def handle_call({:draw, image, opts}, _from, state) do
     img_packed = pack_bits(image)
-    EInk.draw(state.eink, img_packed)
+    EInk.draw(state.eink, img_packed, opts)
 
     {:reply, :ok, state}
   end

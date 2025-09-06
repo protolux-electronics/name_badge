@@ -98,11 +98,55 @@ defmodule NameBadge.NavigationManager do
         ))
       )
 
+      <%= if @button_hints do %>
+      #place(
+        top + left,
+        dx: -28pt,
+        stack(dir: ttb, spacing: 16pt,
+          circle(radius: 8pt)[
+            #set align(center + horizon)
+            #text(size: 16pt, weight: "bold", font: "New Amsterdam", "A")
+          ],
+          circle(radius: 8pt)[
+            #set align(center + horizon)
+            #text(size: 16pt, weight: "bold", font: "New Amsterdam", "B")
+          ],
+        )
+      );
+
+      #place(bottom + center, dy: 24pt,
+        stack(dir: ltr, spacing: 20pt,
+          <%= if @button_hints.a do %>
+            stack(dir: ltr, spacing: 8pt,
+              circle(radius: 8pt)[
+                #set align(center + horizon)
+                #text(size: 16pt, weight: "bold", font: "New Amsterdam", "A")
+              ],
+              align(horizon, text(size: 16pt, font: "New Amsterdam", "<%= @button_hints.a %>"))
+            ),
+          <% end %>
+
+          <%= if @button_hints.b  do %>
+            stack(dir: ltr, spacing: 8pt,
+              circle(radius: 8pt)[
+                #set align(center + horizon)
+                #text(size: 16pt, weight: "bold", font: "New Amsterdam", "B")
+              ],
+              align(horizon, text(size: 16pt, font: "New Amsterdam", "<%= @button_hints.b %>"))
+            )
+          <% end %>
+        )
+      );
+
+      <% end %>
+
       #{screen.module.render(screen.assigns)}
       """
 
+    button_hints = Map.get(screen.assigns, :button_hints)
+
     with {:ok, [png]} <-
-           Typst.render_to_png(markup, [],
+           Typst.render_to_png(markup, [assigns: [button_hints: button_hints]],
              root_dir: Application.app_dir(:name_badge, "priv/typst"),
              extra_fonts: [Application.app_dir(:name_badge, "priv/typst/fonts")]
            ),
