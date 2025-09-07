@@ -31,7 +31,12 @@ defmodule NameBadge.Screen.NameBadge do
   def render(%{config: config}) do
     """
     #place(center + horizon,
-      text(font: "New Amsterdam", size: #{config["name_size"]}pt, "#{config["first_name"]} #{config["last_name"]}"),
+      stack(dir: ttb, spacing: 16pt,
+
+        #{if config["greeting"] && String.length(config["greeting"]) > 0, do: "text(font: \"New Amsterdam\", size: 24pt, \"" <> config["greeting"] <> "\"),"}
+        text(font: "New Amsterdam", size: #{config["name_size"]}pt, "#{config["first_name"]} #{config["last_name"]}"),
+        #{if config["company"] && String.length(config["company"]) > 0, do: "v(64pt), text(font: \"New Amsterdam\", size: 32pt, \"" <> config["company"] <> "\")"}
+      )
     );
     """
   end

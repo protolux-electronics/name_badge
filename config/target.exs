@@ -26,7 +26,7 @@ config :nerves, :erlinit, update_clock: true
 
 keys =
   System.user_home!()
-  |> Path.join(".ssh/id_{rsa,ecdsa,ed25519}.pub")
+  |> Path.join(".ssh/id_goatmire.pub")
   |> Path.wildcard()
 
 if keys == [],
@@ -66,7 +66,7 @@ config :mdns_lite,
   # because otherwise any of the devices may respond to nerves.local leading to
   # unpredictable behavior.
 
-  hosts: [:hostname, "nerves"],
+  hosts: [:hostname, "wisteria"],
   ttl: 120,
 
   # Advertise the following services over mDNS.
@@ -106,4 +106,7 @@ config :nerves_hub_link,
   shared_secret: [
     product_key: product_key,
     product_secret: product_secret
+  ],
+  geo: [
+    resolver: NervesHubLink.Extensions.Geo.DefaultResolver
   ]

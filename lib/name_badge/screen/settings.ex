@@ -91,7 +91,8 @@ defmodule NameBadge.Screen.Settings do
           :crypto.strong_rand_bytes(16)
           |> Base.encode16()
 
-        Socket.join_config(token, %{})
+        config = NameBadge.Config.load_config() || %{}
+        Socket.join_config(token, config)
 
         url = "https://#{base_url()}/device/#{token}/config"
 
