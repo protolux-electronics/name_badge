@@ -76,7 +76,7 @@ defmodule NameBadge.NavigationManager do
         voltage > 4.0 -> "battery-100.png"
         voltage > 3.8 -> "battery-75.png"
         voltage > 3.6 -> "battery-50.png"
-        voltage > 4.4 -> "battery-25.png"
+        voltage > 3.4 -> "battery-25.png"
         true -> "battery-0.png"
       end
 

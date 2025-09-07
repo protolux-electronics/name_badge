@@ -17,12 +17,58 @@ defmodule NameBadge.Screen.Settings do
   end
 
   def render(%{show_stats: true}) do
+    current_ap =
+      case VintageNet.get(["interface", "wlan0", "wifi", "current_ap"]) do
+        %{ssid: ssid} -> ssid
+        _ -> nil
+      end
+
+    wlan_ip =
+      case VintageNet.get(["interface", "wlan0", "addresses"])
+           |> Enum.find(&(&1.family == :inet)) do
+        %{address: {a1, a2, a3, a4}} -> "#{a1}.#{a2}.#{a3}.#{a4}"
+        _ -> nil
+      end
+
+    usb_ip =
+      case VintageNet.get(["interface", "wlan0", "addresses"])
+           |> Enum.find(&(&1.family == :inet)) do
+        %{address: {a1, a2, a3, a4}} -> "#{a1}.#{a2}.#{a3}.#{a4}"
+        _ -> nil
+      end
+
     """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
-        text(size: 48pt, font: "New Amsterdam", "Stats for Nerds!!!")
-      )
-    );
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 16pt,
+      [
+        #set align(top + center);
+        #text(size: 18pt, font: "New Amsterdam")[
+          #heading()[Partition A]
+          Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "a"} \\
+          Version: #{Nerves.Runtime.KV.get("a.nerves_fw_version")} \\
+          UUID: #{Nerves.Runtime.KV.get("a.nerves_fw_uuid") |> String.split_at(16) |> elem(0)}
+
+          #heading()[Battery]
+          Voltage: #{Float.round(Battery.voltage(), 3)}V \\
+        ]
+      ],
+      [
+        #set align(top + center);
+        #text(size: 18pt, font: "New Amsterdam")[
+          #heading()[Partition B]
+          Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "b"} \\
+          Version: #{Nerves.Runtime.KV.get("b.nerves_fw_version")} \\
+          UUID: #{Nerves.Runtime.KV.get("b.nerves_fw_uuid") |> String.split_at(16) |> elem(0)}
+
+          #heading()[Networking]
+          wlan0: #{wlan_ip} \\
+          #{if current_ap, do: "SSID: " <> current_ap}
+
+          usb0: #{usb_ip} \\
+        ]
+      ],
+    )
     """
   end
 
@@ -70,7 +116,12 @@ defmodule NameBadge.Screen.Settings do
   end
 
   def handle_button("BTN_1", 0, screen) do
-    screen = assign(screen, :show_stats, not screen.assigns.show_stats)
+    button_a_label = if screen.assigns.show_stats, do: "Stats for nerds", else: "Scan QR code"
+
+    screen =
+      screen
+      |> assign(:show_stats, not screen.assigns.show_stats)
+      |> assign(:button_hints, %{a: button_a_label, b: "Back"})
 
     {:render, screen}
   end
