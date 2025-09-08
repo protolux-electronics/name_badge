@@ -19,10 +19,10 @@ defmodule NameBadge.Screen.Gallery do
     """
   end
 
-  def init(_args) do
+  def init(_args, screen) do
     Socket.join_gallery()
 
-    {:ok, %{}}
+    {:ok, screen}
   end
 
   def handle_button(_, 0, screen) do

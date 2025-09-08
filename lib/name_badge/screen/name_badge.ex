@@ -5,6 +5,7 @@ defmodule NameBadge.Screen.NameBadge do
 
   require Logger
 
+  @impl true
   def render(%{connected: false}) do
     """
     #place(center + horizon,
@@ -41,36 +42,44 @@ defmodule NameBadge.Screen.NameBadge do
     """
   end
 
-  def init(_args) do
+  @impl true
+  def init(_args, screen) do
     config = NameBadge.Config.load_config()
 
-    cond do
-      not is_nil(config) ->
-        {:ok, %{config: config}}
+    screen =
+      cond do
+        not is_nil(config) ->
+          assign(screen, :config, config)
 
-      Socket.connected?() ->
-        token =
-          :crypto.strong_rand_bytes(16)
-          |> Base.encode16()
+        Socket.connected?() ->
+          token =
+            :crypto.strong_rand_bytes(16)
+            |> Base.encode16()
 
-        Socket.join_config(token, %{})
+          Socket.join_config(token, %{})
 
-        url = "https://#{base_url()}/device/#{token}/config"
+          url = "https://#{base_url()}/device/#{token}/config"
 
-        Logger.info("Generated QR code for: #{url}")
+          Logger.info("Generated QR code for: #{url}")
 
-        {:ok, qr_code_svg} =
-          url
-          |> QRCode.create()
-          |> QRCode.render()
+          {:ok, qr_code_svg} =
+            url
+            |> QRCode.create()
+            |> QRCode.render()
 
-        {:ok, %{qr_code: encode(qr_code_svg), token: token, config: nil}}
+          screen
+          |> assign(:qr_code, encode(qr_code_svg))
+          |> assign(:token, token)
+          |> assign(:config, nil)
 
-      true ->
-        {:ok, %{connected: false}}
-    end
+        true ->
+          assign(screen, :connected, false)
+      end
+
+    {:ok, assign(screen, :button_hints, %{a: "Next", b: "Back"})}
   end
 
+  @impl true
   def handle_button(_, 0, screen) do
     if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
 

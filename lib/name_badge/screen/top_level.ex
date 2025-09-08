@@ -16,16 +16,17 @@ defmodule NameBadge.Screen.TopLevel do
     """
   end
 
-  def init(_opts) do
+  def init(_opts, screen) do
     {name, _module} = Enum.at(@screens, 0)
 
-    {:ok,
-     %{
-       screen_index: 0,
-       screens: @screens,
-       current_screen_name: name,
-       button_hints: %{a: "Next page", b: "Select page"}
-     }}
+    screen =
+      screen
+      |> assign(:screen_index, 0)
+      |> assign(:screens, @screens)
+      |> assign(:current_screen_name, name)
+      |> assign(:button_hints, %{a: "Next Page", b: "Select"})
+
+    {:ok, screen}
   end
 
   def handle_button("BTN_1", 0, screen) do
@@ -47,7 +48,6 @@ defmodule NameBadge.Screen.TopLevel do
   end
 
   def handle_button(button_name, value, screen) do
-    Logger.info("Button handler! #{button_name}, #{value}")
     {:norender, screen}
   end
 end

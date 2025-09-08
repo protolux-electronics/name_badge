@@ -8,6 +8,10 @@ import Config
 # Enable the Nerves integration with Mix
 Application.start(:nerves_bootstrap)
 
+# set the time zone database
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+config :tzdata, :data_dir, "/data/tzdata"
+
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.
 

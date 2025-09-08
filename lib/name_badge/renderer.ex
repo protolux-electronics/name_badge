@@ -1,4 +1,4 @@
-defmodule NameBadge.NavigationManager do
+defmodule NameBadge.Renderer do
   use GenServer
 
   require Logger
@@ -22,11 +22,10 @@ defmodule NameBadge.NavigationManager do
     GPIO.set_interrupts(btn_1, :both)
     GPIO.set_interrupts(btn_2, :both)
 
-    {:ok, top_level_assigns} = Screen.TopLevel.init([])
-    top_level = %Screen{assigns: top_level_assigns, module: Screen.TopLevel}
+    screen = %Screen{module: Screen.TopLevel}
+    {:ok, screen} = Screen.TopLevel.init([], screen)
 
-    {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: top_level},
-     {:continue, :render}}
+    {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: screen}, {:continue, :render}}
   end
 
   @impl true
@@ -40,8 +39,8 @@ defmodule NameBadge.NavigationManager do
         %Screen{action: {:navigate, module, params}} = screen ->
           new_stack = [Map.put(screen, :action, nil) | state.stack]
 
-          {:ok, assigns} = module.init(params)
-          new_screen = %Screen{assigns: assigns, module: module}
+          new_screen = %Screen{module: module}
+          {:ok, new_screen} = module.init(params, new_screen)
 
           Map.merge(state, %{stack: new_stack, current_screen: new_screen})
 
@@ -65,6 +64,11 @@ defmodule NameBadge.NavigationManager do
       {:norender, screen} ->
         {:noreply, put_in(state.current_screen, screen)}
     end
+  end
+
+  def handle_info({:assign, key, value}, state) do
+    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
+    {:noreply, state, {:continue, :render}}
   end
 
   defp render_screen(screen) do
@@ -145,7 +149,7 @@ defmodule NameBadge.NavigationManager do
 
     button_hints = Map.get(screen.assigns, :button_hints)
 
-    with {:ok, [png]} <-
+    with {:ok, [png | _rest]} <-
            Typst.render_to_png(markup, [assigns: [button_hints: button_hints]],
              root_dir: Application.app_dir(:name_badge, "priv/typst"),
              extra_fonts: [Application.app_dir(:name_badge, "priv/typst/fonts")]

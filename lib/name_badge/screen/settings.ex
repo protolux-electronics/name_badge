@@ -1,20 +1,11 @@
 defmodule NameBadge.Screen.Settings do
   use NameBadge.Screen
 
+  alias NameBadge.Display
   alias NameBadge.Battery
   alias NameBadge.Socket
 
   require Logger
-
-  def render(%{connected: false}) do
-    """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
-        text(size: 48pt, font: "New Amsterdam", "Not connected :(")
-      )
-    );
-    """
-  end
 
   def render(%{show_stats: true}) do
     current_ap =
@@ -37,6 +28,19 @@ defmodule NameBadge.Screen.Settings do
         _ -> nil
       end
 
+    firmware = fn
+      nil ->
+        "null"
+
+      fw ->
+        {first, rest} = String.split_at(fw, 8)
+        {_junk, last} = String.split_at(rest, -4)
+
+        "#{first}...#{last}"
+    end
+
+    battery = Float.round(Battery.voltage(), 3)
+
     """
     #grid(
       columns: (1fr, 1fr),
@@ -47,10 +51,10 @@ defmodule NameBadge.Screen.Settings do
           #heading()[Partition A]
           Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "a"} \\
           Version: #{Nerves.Runtime.KV.get("a.nerves_fw_version")} \\
-          UUID: #{Nerves.Runtime.KV.get("a.nerves_fw_uuid") |> String.split_at(16) |> elem(0)}
+          UUID: #{Nerves.Runtime.KV.get("a.nerves_fw_uuid") |> firmware.()}
 
           #heading()[Battery]
-          Voltage: #{Float.round(Battery.voltage(), 3)}V \\
+          #{if Battery.charging?(), do: "Status: Charging", else: "Voltage: " <> to_string(battery) <> "V"} \\
         ]
       ],
       [
@@ -59,7 +63,7 @@ defmodule NameBadge.Screen.Settings do
           #heading()[Partition B]
           Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "b"} \\
           Version: #{Nerves.Runtime.KV.get("b.nerves_fw_version")} \\
-          UUID: #{Nerves.Runtime.KV.get("b.nerves_fw_uuid") |> String.split_at(16) |> elem(0)}
+          UUID: #{Nerves.Runtime.KV.get("b.nerves_fw_uuid") |> firmware.()}
 
           #heading()[Networking]
           wlan0: #{wlan_ip} \\
@@ -72,11 +76,21 @@ defmodule NameBadge.Screen.Settings do
     """
   end
 
-  def render(assigns) do
+  def render(%{connected: false}) do
+    """
+    #place(center + horizon,
+      stack(dir: ttb, spacing: 16pt,
+        text(size: 48pt, font: "New Amsterdam", "Not connected :(")
+      )
+    );
+    """
+  end
+
+  def render(%{qr_code: qr_code}) do
     """
     #place(center + horizon,
       stack(dir: ttb, spacing: 12pt,
-        image(height: 80%, format: "svg", bytes("#{assigns.qr_code}")),
+        image(height: 80%, format: "svg", bytes("#{qr_code}")),
         v(8pt),
         text(size: 24pt, font: "New Amsterdam", "Scan to modify settings"),
       )
@@ -84,47 +98,71 @@ defmodule NameBadge.Screen.Settings do
     """
   end
 
-  def init(_args) do
-    cond do
-      Socket.connected?() ->
-        token =
-          :crypto.strong_rand_bytes(16)
-          |> Base.encode16()
+  def init(_args, screen) do
+    screen =
+      cond do
+        Socket.connected?() ->
+          token =
+            :crypto.strong_rand_bytes(16)
+            |> Base.encode16()
 
-        config = NameBadge.Config.load_config() || %{}
-        Socket.join_config(token, config)
+          config = NameBadge.Config.load_config() || %{}
+          Socket.join_config(token, config)
 
-        url = "https://#{base_url()}/device/#{token}/config"
+          url = "https://#{base_url()}/device/#{token}/config"
 
-        Logger.info("Generated QR code for: #{url}")
+          Logger.info("Generated QR code for: #{url}")
 
-        {:ok, qr_code_svg} =
-          url
-          |> QRCode.create()
-          |> QRCode.render()
+          {:ok, qr_code_svg} =
+            url
+            |> QRCode.create()
+            |> QRCode.render()
 
-        {:ok,
-         %{
-           qr_code: encode(qr_code_svg),
-           token: token,
-           show_stats: false,
-           button_hints: %{a: "Stats for nerds", b: "Back"}
-         }}
+          screen
+          |> assign(:connected, true)
+          |> assign(:qr_code, encode(qr_code_svg))
+          |> assign(:token, token)
+          |> assign(:show_stats, false)
+          |> assign(:sudo_mode, false)
 
-      true ->
-        {:ok, %{connected: false}}
-    end
+        true ->
+          screen
+          |> assign(:connected, false)
+          |> assign(:show_stats, false)
+          |> assign(:sudo_mode, false)
+      end
+
+    {:ok, assign(screen, :button_hints, %{a: "Stats for nerds", b: "Back"})}
   end
 
+  def handle_button(_which, 0, %{assigns: %{sudo_mode: true}} = screen), do: {:norender, screen}
+
   def handle_button("BTN_1", 0, screen) do
-    button_a_label = if screen.assigns.show_stats, do: "Stats for nerds", else: "Scan QR code"
+    button_a_label = if screen.assigns.show_stats, do: "Stats for nerds", else: "Enter Sudo Mode"
 
-    screen =
-      screen
-      |> assign(:show_stats, not screen.assigns.show_stats)
-      |> assign(:button_hints, %{a: button_a_label, b: "Back"})
+    cond do
+      screen.assigns.show_stats ->
+        Task.start_link(fn ->
+          frames =
+            Application.app_dir(:name_badge, "priv/sudo_mode.bin")
+            |> File.read!()
+            |> :erlang.binary_to_term()
 
-    {:render, screen}
+          for frame <- frames, do: Display.draw(frame, refresh_type: :partial)
+
+          send(NameBadge.Renderer, {:assign, :sudo_mode, false})
+        end)
+
+        {:norender, assign(screen, :sudo_mode, true)}
+
+      true ->
+        screen =
+          screen
+          |> assign(:show_stats, not screen.assigns.show_stats)
+          |> assign(:button_hints, %{a: button_a_label, b: "Back"})
+
+        {:render, screen}
+    end
   end
 
   def handle_button("BTN_2", 0, screen) do

@@ -27,7 +27,7 @@ defmodule NameBadge.Display do
     initial_frame =
       """
       #set page(width: 400pt, height: 300pt)
-      #place(center + horizon, image("images/logos.svg", width: 300pt))
+      #place(center + horizon, image("images/logos.svg", width: 200pt))
       """
       |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
       |> List.first()
