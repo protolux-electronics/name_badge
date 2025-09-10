@@ -9,6 +9,7 @@ defmodule NameBadge.Renderer do
 
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
+  @wlan0_property ["interface", "wlan0", "connection"]
 
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -21,6 +22,8 @@ defmodule NameBadge.Renderer do
 
     GPIO.set_interrupts(btn_1, :both)
     GPIO.set_interrupts(btn_2, :both)
+
+    VintageNet.subscribe(@wlan0_property)
 
     screen = %Screen{module: Screen.TopLevel}
     {:ok, screen} = Screen.TopLevel.init([], screen)
@@ -71,6 +74,10 @@ defmodule NameBadge.Renderer do
     {:noreply, state, {:continue, :render}}
   end
 
+  def handle_info({VintageNet, @wlan0_property, _old, _new, _metadata}, state) do
+    {:noreply, state, {:continue, :render}}
+  end
+
   defp render_screen(screen) do
     voltage = NameBadge.Battery.voltage()
 
@@ -84,7 +91,7 @@ defmodule NameBadge.Renderer do
         true -> "battery-0.png"
       end
 
-    connected? = VintageNet.get(["interface", "wlan0", "connection"]) == :internet
+    connected? = VintageNet.get(@wlan0_property) == :internet
     wifi_icon = if connected?, do: "wifi.png", else: "wifi-slash.png"
     link_icon = if Socket.connected?(), do: "link.png", else: "link-slash.png"
 
@@ -97,8 +104,9 @@ defmodule NameBadge.Renderer do
         dy: -24pt,
         dx: 24pt,
         box(height: 16pt, stack(dir: ltr, spacing: 8pt,
-          image("images/icons/#{battery_icon}"), 
-          image("images/icons/#{wifi_icon}"), image("images/icons/#{link_icon}"), 
+          image("images/icons/#{battery_icon}"),
+          image("images/icons/#{wifi_icon}"),
+          image("images/icons/#{link_icon}"),
         ))
       )
 
