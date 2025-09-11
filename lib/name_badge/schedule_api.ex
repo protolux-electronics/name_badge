@@ -56,6 +56,7 @@ defmodule NameBadge.ScheduleAPI do
     File.read(@save_path)
     |> case do
       {:error, _reason} -> nil
+      {:ok, ""} -> nil
       {:ok, data} -> :erlang.binary_to_term(data)
     end
   end

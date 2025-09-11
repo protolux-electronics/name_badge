@@ -49,7 +49,7 @@ defmodule NameBadge.MixProject do
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.0", targets: @all_targets},
-      {:eink, path: "../eink", targets: @all_targets},
+      {:eink, github: "protolux-electronics/eink", targets: @all_targets},
 
       # nerves hub
       {:nerves_hub_link, "~> 2.8", targets: @all_targets},

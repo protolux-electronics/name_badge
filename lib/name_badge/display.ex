@@ -27,7 +27,7 @@ defmodule NameBadge.Display do
     initial_frame =
       """
       #set page(width: 400pt, height: 300pt)
-      #place(center + horizon, image("images/logos.svg", width: 200pt))
+      #place(center + horizon, image("images/logos.svg", width: 196pt))
       """
       |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
       |> List.first()
@@ -58,6 +58,6 @@ defmodule NameBadge.Display do
       threshold(b5)::1, threshold(b6)::1, threshold(b7)::1, pack_bits(rest)::binary>>
   end
 
-  defp threshold(b) when b >= 127, do: 1
-  defp threshold(b) when b < 127, do: 0
+  defp threshold(b) when b >= 100, do: 1
+  defp threshold(b) when b < 100, do: 0
 end

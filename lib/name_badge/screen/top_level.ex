@@ -47,7 +47,7 @@ defmodule NameBadge.Screen.TopLevel do
     {:render, navigate(screen, module)}
   end
 
-  def handle_button(button_name, value, screen) do
+  def handle_button(_button_name, _value, screen) do
     {:norender, screen}
   end
 end
