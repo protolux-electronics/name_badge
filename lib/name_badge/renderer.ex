@@ -32,6 +32,10 @@ defmodule NameBadge.Renderer do
   end
 
   @impl true
+  def handle_continue(:render, state) do
+    handle_continue({:render, :full}, state)
+  end
+
   def handle_continue({:render, render_type}, state) do
     state =
       case state.current_screen do
@@ -193,7 +197,7 @@ defmodule NameBadge.Renderer do
          {:ok, img} = Dither.decode(png),
          {:ok, gray} = Dither.grayscale(img),
          {:ok, raw} = Dither.to_raw(gray) do
-      NameBadge.Display.draw(raw, render_type: render_type)
+      NameBadge.Display.draw(raw, refresh_type: render_type)
     else
       error -> Logger.error("rendering error: #{inspect(error)}")
     end
