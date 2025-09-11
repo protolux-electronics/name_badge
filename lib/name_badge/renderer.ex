@@ -58,7 +58,16 @@ defmodule NameBadge.Renderer do
 
     render_screen(state.current_screen, render_type)
 
-    {:noreply, state}
+    case send_refresh_event(state.current_screen) do
+      {:render, screen} ->
+        {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
+
+      {:partial, screen} ->
+        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
+
+      {:norender, screen} ->
+        {:noreply, put_in(state.current_screen, screen)}
+    end
   end
 
   @impl GenServer
@@ -199,7 +208,6 @@ defmodule NameBadge.Renderer do
          {:ok, gray} = Dither.grayscale(img),
          {:ok, raw} = Dither.to_raw(gray) do
       NameBadge.Display.draw(raw, render_type: render_type)
-      send_refresh_event(screen)
     else
       error -> Logger.error("rendering error: #{inspect(error)}")
     end
