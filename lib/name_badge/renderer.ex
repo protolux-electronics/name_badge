@@ -32,7 +32,7 @@ defmodule NameBadge.Renderer do
   end
 
   @impl true
-  def handle_continue(:render, state) do
+  def handle_continue({:render, render_type}, state) do
     state =
       case state.current_screen do
         %Screen{action: :back} ->
@@ -51,7 +51,7 @@ defmodule NameBadge.Renderer do
           state
       end
 
-    render_screen(state.current_screen)
+    render_screen(state.current_screen, render_type)
 
     {:noreply, state}
   end
@@ -62,7 +62,10 @@ defmodule NameBadge.Renderer do
 
     case state.current_screen.module.handle_button(which_button, value, state.current_screen) do
       {:render, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
+        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :full}}}
+
+      {:partial, screen} ->
+        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
 
       {:norender, screen} ->
         {:noreply, put_in(state.current_screen, screen)}
@@ -74,7 +77,7 @@ defmodule NameBadge.Renderer do
     {:noreply, state, {:continue, :render}}
   end
 
-  def handle_info({VintageNet, @wlan0_property, _old, _new, _metadata}, state) do
+  def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
     {:noreply, state, {:continue, :render}}
   end
 
@@ -85,7 +88,25 @@ defmodule NameBadge.Renderer do
     {:noreply, state, {:continue, :render}}
   end
 
-  defp render_screen(screen) do
+  def handle_info(message, state) do
+    if Kernel.function_exported?(state.current_screen.module, :handle_info, 2) do
+      case state.current_screen.module.handle_info(message, state.current_screen) do
+        {:render, screen} ->
+          {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :full}}}
+
+        {:partial, screen} ->
+          {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
+
+        {:norender, screen} ->
+          {:noreply, put_in(state.current_screen, screen)}
+      end
+    else
+      Logger.info("No handler for handle_info: #{inspect(message)}")
+      {:noreply, state}
+    end
+  end
+
+  defp render_screen(screen, render_type) do
     voltage = NameBadge.Battery.voltage()
 
     battery_icon =
@@ -172,7 +193,7 @@ defmodule NameBadge.Renderer do
          {:ok, img} = Dither.decode(png),
          {:ok, gray} = Dither.grayscale(img),
          {:ok, raw} = Dither.to_raw(gray) do
-      NameBadge.Display.draw(raw)
+      NameBadge.Display.draw(raw, render_type: render_type)
     else
       error -> Logger.error("rendering error: #{inspect(error)}")
     end
