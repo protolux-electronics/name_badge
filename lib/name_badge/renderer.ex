@@ -32,12 +32,12 @@ defmodule NameBadge.Renderer do
   end
 
   @impl GenServer
-  def handle_continue(:render, state) do
-    handle_continue({:render, :full}, state)
+  def handle_info(:render, state) do
+    handle_info({:render, :full}, state)
   end
 
   @impl GenServer
-  def handle_continue({:render, render_type}, state) do
+  def handle_info({:render, render_type}, state) do
     state =
       case state.current_screen do
         %Screen{action: :back} ->
@@ -58,62 +58,41 @@ defmodule NameBadge.Renderer do
 
     render_screen(state.current_screen, render_type)
 
-    case send_refresh_event(state.current_screen) do
-      {:render, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
-
-      {:partial, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
-
-      {:norender, screen} ->
-        {:noreply, put_in(state.current_screen, screen)}
-    end
+    send_refresh_event(state.current_screen)
+    |> handle_screen_result(state)
   end
 
   @impl GenServer
   def handle_info({:circuits_gpio, which_button, _ts, value}, state) do
     Logger.info("button pressed: #{which_button} - #{value}")
 
-    case state.current_screen.module.handle_button(which_button, value, state.current_screen) do
-      {:render, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
-
-      {:partial, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
-
-      {:norender, screen} ->
-        {:noreply, put_in(state.current_screen, screen)}
-    end
+    state.current_screen.module.handle_button(which_button, value, state.current_screen)
+    |> handle_screen_result(state)
   end
 
   def handle_info({:assign, key, value}, state) do
     state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-    {:noreply, state, {:continue, :render}}
+    schedule_render()
+    {:noreply, state}
   end
 
   def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
-    {:noreply, state, {:continue, :render}}
+    schedule_render(:partial)
+    {:noreply, state}
   end
 
   def handle_info({:survey_question, question}, state) do
     screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
     state = %{state | current_screen: screen}
 
-    {:noreply, state, {:continue, :render}}
+    schedule_render(:partial)
+    {:noreply, state}
   end
 
   def handle_info(message, state) do
     if Kernel.function_exported?(state.current_screen.module, :handle_info, 2) do
-      case state.current_screen.module.handle_info(message, state.current_screen) do
-        {:render, screen} ->
-          {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
-
-        {:partial, screen} ->
-          {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
-
-        {:norender, screen} ->
-          {:noreply, put_in(state.current_screen, screen)}
-      end
+      state.current_screen.module.handle_info(message, state.current_screen)
+      |> handle_screen_result(state)
     else
       Logger.info("No handler for handle_info: #{inspect(message)}")
       {:noreply, state}
@@ -221,6 +200,23 @@ defmodule NameBadge.Renderer do
 
       true ->
         :ok
+    end
+  end
+
+  defp schedule_render(render_type \\ :full), do: send(self(), {:render, render_type})
+
+  def handle_screen_result(result, state) do
+    case result do
+      {:render, screen} ->
+        schedule_render()
+        {:noreply, put_in(state.current_screen, screen)}
+
+      {:partial, screen} ->
+        schedule_render(:partial)
+        {:noreply, put_in(state.current_screen, screen)}
+
+      {:norender, screen} ->
+        {:noreply, put_in(state.current_screen, screen)}
     end
   end
 end
