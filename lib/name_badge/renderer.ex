@@ -15,7 +15,7 @@ defmodule NameBadge.Renderer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  @impl true
+  @impl GenServer
   def init(_opts) do
     {:ok, btn_1} = GPIO.open(@btn_1, :input)
     {:ok, btn_2} = GPIO.open(@btn_2, :input)
@@ -31,11 +31,12 @@ defmodule NameBadge.Renderer do
     {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: screen}, {:continue, :render}}
   end
 
-  @impl true
+  @impl GenServer
   def handle_continue(:render, state) do
     handle_continue({:render, :full}, state)
   end
 
+  @impl GenServer
   def handle_continue({:render, render_type}, state) do
     state =
       case state.current_screen do
@@ -60,13 +61,13 @@ defmodule NameBadge.Renderer do
     {:noreply, state}
   end
 
-  @impl true
+  @impl GenServer
   def handle_info({:circuits_gpio, which_button, _ts, value}, state) do
     Logger.info("button pressed: #{which_button} - #{value}")
 
     case state.current_screen.module.handle_button(which_button, value, state.current_screen) do
       {:render, screen} ->
-        {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :full}}}
+        {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
 
       {:partial, screen} ->
         {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
@@ -96,7 +97,7 @@ defmodule NameBadge.Renderer do
     if Kernel.function_exported?(state.current_screen.module, :handle_info, 2) do
       case state.current_screen.module.handle_info(message, state.current_screen) do
         {:render, screen} ->
-          {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :full}}}
+          {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
 
         {:partial, screen} ->
           {:noreply, put_in(state.current_screen, screen), {:continue, {:render, :partial}}}
@@ -197,9 +198,21 @@ defmodule NameBadge.Renderer do
          {:ok, img} = Dither.decode(png),
          {:ok, gray} = Dither.grayscale(img),
          {:ok, raw} = Dither.to_raw(gray) do
-      NameBadge.Display.draw(raw, refresh_type: render_type)
+      NameBadge.Display.draw(raw, render_type: render_type)
+      send_refresh_event(screen)
     else
       error -> Logger.error("rendering error: #{inspect(error)}")
+    end
+  end
+
+  defp send_refresh_event(screen) do
+    cond do
+      function_exported?(screen.module, :handle_refresh, 1) ->
+        screen.module.handle_refresh(screen)
+        :ok
+
+      true ->
+        :ok
     end
   end
 end
