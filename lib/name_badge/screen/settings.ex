@@ -17,8 +17,13 @@ defmodule NameBadge.Screen.Settings do
     wlan_ip =
       case VintageNet.get(["interface", "wlan0", "addresses"]) do
         addrs when is_list(addrs) ->
-          %{address: {a1, a2, a3, a4}} = Enum.find(addrs, &(&1.family == :inet))
-          "#{a1}.#{a2}.#{a3}.#{a4}"
+          case Enum.find(addrs, &(&1.family == :inet)) do
+            %{address: {a1, a2, a3, a4}} ->
+              "#{a1}.#{a2}.#{a3}.#{a4}"
+
+            _other ->
+              "Not connected"
+          end
 
         _ ->
           "Not connected"
@@ -27,11 +32,16 @@ defmodule NameBadge.Screen.Settings do
     usb_ip =
       case VintageNet.get(["interface", "usb0", "addresses"]) do
         addrs when is_list(addrs) ->
-          %{address: {a1, a2, a3, a4}} = Enum.find(addrs, &(&1.family == :inet))
-          "#{a1}.#{a2}.#{a3}.#{a4}"
+          case Enum.find(addrs, &(&1.family == :inet)) do
+            %{address: {a1, a2, a3, a4}} ->
+              "#{a1}.#{a2}.#{a3}.#{a4}"
+
+            _other ->
+              "Not connected"
+          end
 
         _ ->
-          nil
+          "Not connected"
       end
 
     firmware = fn
