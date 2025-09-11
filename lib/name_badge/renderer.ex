@@ -196,10 +196,9 @@ defmodule NameBadge.Renderer do
     cond do
       function_exported?(screen.module, :handle_refresh, 1) ->
         screen.module.handle_refresh(screen)
-        :ok
 
       true ->
-        :ok
+        {:norender, screen}
     end
   end
 
