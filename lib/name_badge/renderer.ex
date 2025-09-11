@@ -85,6 +85,21 @@ defmodule NameBadge.Renderer do
     {:noreply, state, {:continue, :render}}
   end
 
+  def handle_info(message, state) do
+    if Kernel.function_exported?(state.current_screen.module, :handle_info, 2) do
+      case state.current_screen.module.handle_info(message, state.current_screen) do
+        {:render, screen} ->
+          {:noreply, put_in(state.current_screen, screen), {:continue, :render}}
+
+        {:norender, screen} ->
+          {:noreply, put_in(state.current_screen, screen)}
+      end
+    else
+      Logger.info("No handler for handle_info: #{inspect(message)}")
+      {:noreply, state}
+    end
+  end
+
   defp render_screen(screen) do
     voltage = NameBadge.Battery.voltage()
 
