@@ -30,13 +30,37 @@ defmodule NameBadge.Screen.NameBadge do
   end
 
   def render(%{config: config}) do
+    greeting_element =
+      case config["greeting"] do
+        nil ->
+          ""
+
+        "" ->
+          ""
+
+        greeting when is_binary(greeting) ->
+          "text(font: \"New Amsterdam\", size: #{config["greeting_size"]}pt)[#{greeting}],"
+      end
+
+    company_element =
+      case config["company"] do
+        nil ->
+          ""
+
+        "" ->
+          ""
+
+        company when is_binary(company) ->
+          "text(font: \"New Amsterdam\", size: #{config["company_size"]}pt)[#{company}],"
+      end
+
     """
     #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
+      stack(dir: ttb, spacing: #{config["spacing"]}pt,
 
-        #{if config["greeting"] && String.length(config["greeting"]) > 0, do: "text(font: \"New Amsterdam\", size: 24pt, \"" <> config["greeting"] <> "\"),"}
+        #{greeting_element}
         text(font: "New Amsterdam", size: #{config["name_size"]}pt, "#{config["first_name"]} #{config["last_name"]}"),
-        #{if config["company"] && String.length(config["company"]) > 0, do: "v(64pt), text(font: \"New Amsterdam\", size: 32pt, \"" <> config["company"] <> "\")"}
+        #{company_element}
       )
     );
     """

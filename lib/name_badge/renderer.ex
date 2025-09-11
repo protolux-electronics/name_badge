@@ -71,6 +71,13 @@ defmodule NameBadge.Renderer do
     {:noreply, state, {:continue, :render}}
   end
 
+  def handle_info({:survey_question, question}, state) do
+    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
+    state = %{state | current_screen: screen}
+
+    {:noreply, state, {:continue, :render}}
+  end
+
   defp render_screen(screen) do
     voltage = NameBadge.Battery.voltage()
 
@@ -107,11 +114,11 @@ defmodule NameBadge.Renderer do
         top + left,
         dx: -28pt,
         stack(dir: ttb, spacing: 16pt,
-          circle(radius: 8pt)[
+          circle(radius: 8pt, stroke: 1.25pt)[
             #set align(center + horizon)
             #text(size: 16pt, weight: "bold", font: "New Amsterdam", "A")
           ],
-          circle(radius: 8pt)[
+          circle(radius: 8pt, stroke: 1.25pt)[
             #set align(center + horizon)
             #text(size: 16pt, weight: "bold", font: "New Amsterdam", "B")
           ],
@@ -122,7 +129,7 @@ defmodule NameBadge.Renderer do
         stack(dir: ltr, spacing: 20pt,
           <%= if @button_hints.a do %>
             stack(dir: ltr, spacing: 8pt,
-              circle(radius: 8pt)[
+              circle(radius: 8pt, stroke: 1.25pt)[
                 #set align(center + horizon)
                 #text(size: 16pt, weight: "bold", font: "New Amsterdam", "A")
               ],
@@ -132,7 +139,7 @@ defmodule NameBadge.Renderer do
 
           <%= if @button_hints.b  do %>
             stack(dir: ltr, spacing: 8pt,
-              circle(radius: 8pt)[
+              circle(radius: 8pt, stroke: 1.25pt)[
                 #set align(center + horizon)
                 #text(size: 16pt, weight: "bold", font: "New Amsterdam", "B")
               ],

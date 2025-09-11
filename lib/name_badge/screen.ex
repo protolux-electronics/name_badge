@@ -1,7 +1,9 @@
 defmodule NameBadge.Screen do
   defstruct [:action, :module, assigns: %{}]
 
-  @callback init(args :: any()) :: {:ok, map()}
+  @type t() :: %__MODULE__{}
+
+  @callback init(args :: any(), screen :: t()) :: {:ok, map()}
   @callback render(assigns :: map()) :: String.t()
   @callback handle_button(button_name :: String.t(), value :: integer(), state :: map()) ::
               {:noreply, map()}
