@@ -2,7 +2,7 @@ defmodule NameBadge.Screen.Snake do
   use NameBadge.Screen
 
   @board_size 8
-  @draw_interval :timer.seconds(3)
+  @draw_interval :timer.seconds(1)
   @reset_interval :timer.seconds(5)
 
   @zero_size @board_size - 1
@@ -108,16 +108,15 @@ defmodule NameBadge.Screen.Snake do
 
     // Game title and board
     #align(center)[
-      #text(size: 20pt, weight: "bold", fill: rgb("#{if game_over, do: "#000", else: "#fff"}"))[Game Over!]
+      #text(size: 24pt, weight: "bold", font: "New Amsterdam", fill: rgb("#{if game_over, do: "#000", else: "#fff"}"))[Game Over!]
 
       #box(
-        stroke: rgb("#1a3009") + 3pt,
-        fill: rgb("#f0f8e8")
+        stroke: rgb("#000") + 3pt,
       )[
         #snake-board()
       ]
 
-      #text(size: 16pt, fill: rgb("#000"))[Points: #{points}]
+      #text(size: 20pt, weight: "bold", font: "New Amsterdam")[Points: #{points}]
     ]
     """
   end
@@ -134,7 +133,7 @@ defmodule NameBadge.Screen.Snake do
       end
 
     screen = screen |> cancel_tick() |> update_board(new_direction)
-    {:render, screen}
+    {:partial, screen}
   end
 
   def handle_button("BTN_2", 0, screen) do
@@ -147,7 +146,7 @@ defmodule NameBadge.Screen.Snake do
       end
 
     screen = screen |> cancel_tick() |> update_board(new_direction)
-    {:render, screen}
+    {:partial, screen}
   end
 
   def handle_button(_btn, _, screen) do
@@ -155,7 +154,7 @@ defmodule NameBadge.Screen.Snake do
   end
 
   def handle_info(:tick, screen) do
-    {:render, update_board(screen)}
+    {:partial, update_board(screen)}
   end
 
   def handle_info(:reset, screen) do
