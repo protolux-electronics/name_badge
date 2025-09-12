@@ -12,7 +12,6 @@ defmodule NameBadge.Application do
     children =
       [
         # Children for all targets
-        {Phoenix.PubSub, name: NameBadge.PubSub.name()}
       ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html

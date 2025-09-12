@@ -114,7 +114,7 @@ defmodule NameBadge.Screen.Settings do
     """
   end
 
-  def init(_args, screen) do
+  def mount(_args, screen) do
     screen =
       cond do
         Socket.connected?() ->
@@ -151,7 +151,9 @@ defmodule NameBadge.Screen.Settings do
     {:ok, assign(screen, :button_hints, %{a: "Stats for nerds", b: "Back"})}
   end
 
-  def handle_button(_which, 0, %{assigns: %{sudo_mode: true}} = screen), do: {:norender, screen}
+  def handle_button(_which, 0, %{assigns: %{sudo_mode: true}} = screen) do
+    {:ok, screen}
+  end
 
   def handle_button("BTN_1", 0, screen) do
     button_a_label = if screen.assigns.show_stats, do: "Stats for nerds", else: "Enter Sudo Mode"
@@ -166,10 +168,12 @@ defmodule NameBadge.Screen.Settings do
 
           for frame <- frames, do: Display.draw(frame, refresh_type: :partial)
 
-          send(NameBadge.Renderer, {:assign, :sudo_mode, false})
+          screen
+          |> assign(:sudo_mode, false)
+          |> NameBadge.Device.render(:full)
         end)
 
-        {:norender, assign(screen, :sudo_mode, true)}
+        {:ok, assign(screen, :sudo_mode, true)}
 
       true ->
         screen =
@@ -177,18 +181,22 @@ defmodule NameBadge.Screen.Settings do
           |> assign(:show_stats, not screen.assigns.show_stats)
           |> assign(:button_hints, %{a: button_a_label, b: "Back"})
 
-        {:render, screen}
+        NameBadge.Device.render(screen, :partial)
+
+        {:ok, screen}
     end
   end
 
   def handle_button("BTN_2", 0, screen) do
     if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
 
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+
+    {:ok, screen}
   end
 
   def handle_button(_, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 
   defp base_url(), do: Application.get_env(:name_badge, :base_url)

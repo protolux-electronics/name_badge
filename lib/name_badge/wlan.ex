@@ -11,6 +11,10 @@ defmodule NameBadge.Wlan do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
+  def connected?() do
+    GenServer.call(__MODULE__, :get_connected)
+  end
+
   # Callbacks
 
   def start_link(_args) do
@@ -19,12 +23,16 @@ defmodule NameBadge.Wlan do
     # Connect to the WiFi with a 2s delay
     Process.send_after(self(), :connect, :timer.seconds(2))
 
-    {:ok, nil}
+    {:ok, %{connected?: false}}
   end
 
-  def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
-    schedule_render(:partial)
-    {:noreply, state}
+  def handle_call(:get_connected, state) do
+    {:reply, state.connected?, state}
+  end
+
+  def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, _state) do
+    NameBadge.Device.re_render(:partial)
+    {:noreply, %{connected?: true}}
   end
 
   def handle_info(:connect, state) do

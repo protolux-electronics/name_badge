@@ -1,5 +1,5 @@
 defmodule NameBadge.Device do
-  @moduletoc """
+  @moduledoc """
   Controls navigation and rendering of screens.
   """
 
@@ -7,8 +7,8 @@ defmodule NameBadge.Device do
 
   require Logger
 
+  alias NameBadge.Renderer
   alias NameBadge.Screen
-  alias NameBadge.Socket
 
   def init(_opts) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -16,6 +16,10 @@ defmodule NameBadge.Device do
 
   def render(screen, render_type \\ :full) do
     GenServer.cast(__MODULE__, {:render, screen, render_type})
+  end
+
+  def re_render(render_type) do
+    GenServer.cast(__MODULE__, {:re_render, render_type})
   end
 
   def navigate_back() do
@@ -26,11 +30,14 @@ defmodule NameBadge.Device do
     GenServer.call(__MODULE__, {:navigate, module, params})
   end
 
+  def send_button_pressed(button, value) do
+    GenServer.cast(__MODULE__, {:button_pressed, button, value})
+  end
+
   # Callbacks
 
   def start_link(_args) do
-    screen = %Screen{module: Screen.TopLevel}
-    {:ok, initial_screen} = Screen.TopLevel.init([], screen)
+    {:ok, initial_screen} = Screen.TopLevel.init(%{})
 
     state = %{
       stack: [initial_screen],
@@ -42,6 +49,16 @@ defmodule NameBadge.Device do
 
   def handle_cast({:render, screen, render_type}, state) do
     do_render(screen, render_type)
+    {:noreply, state}
+  end
+
+  def handle_cast({:re_render, render_type}, state) do
+    do_render(state.current_screen, render_type)
+    {:noreply, state}
+  end
+
+  def handle_cast({:button_pressed, button, value}, state) do
+    state.current_screen.send_button_pressed(button, value)
     {:noreply, state}
   end
 
@@ -60,7 +77,7 @@ defmodule NameBadge.Device do
 
     # TODO: Think about if and how to terminate the previous screen.
 
-    {:ok, _pid} = module.init(params)
+    {:ok, _pid} = screen.module.init(params)
     :ok = do_render(screen, :full)
 
     state = %{stack: new_stack, current_screen: screen}

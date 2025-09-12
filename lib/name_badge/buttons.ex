@@ -5,6 +5,8 @@ defmodule NameBadge.Buttons do
 
   use GenServer
 
+  require Logger
+
   alias Circuits.GPIO
 
   @btn_1 "BTN_1"
@@ -28,11 +30,10 @@ defmodule NameBadge.Buttons do
     {:ok, state}
   end
 
-  @impl GenServer
   def handle_info({:circuits_gpio, which_button, _ts, value}, state) do
     Logger.info("button pressed: #{which_button} - #{value}")
 
-    NameBadge.PubSub.broadcast!("buttons", {:button_pressed, which_button, value})
+    NameBadge.Device.send_button_pressed(which_button, value)
 
     {:noreply, state}
   end

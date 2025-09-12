@@ -6,7 +6,7 @@ defmodule NameBadge.Screen.Snake do
 
   @zero_size @board_size - 1
 
-  def init(_args, screen) do
+  def mount(_params, screen) do
     initial_snake = [{3, 3}, {3, 4}, {3, 5}]
     initial_target = {1, 1}
 
@@ -141,8 +141,10 @@ defmodule NameBadge.Screen.Snake do
         :down -> :right
       end
 
-    screen = screen |> update_board(new_direction)
-    {:partial, screen}
+    screen = update_board(screen, new_direction)
+    NameBadge.Device.render(screen, :partial)
+
+    {:ok, screen}
   end
 
   def handle_button("BTN_2", 0, screen) do
@@ -154,12 +156,14 @@ defmodule NameBadge.Screen.Snake do
         :up -> :right
       end
 
-    screen = screen |> update_board(new_direction)
-    {:partial, screen}
+    screen = update_board(screen, new_direction)
+    NameBadge.Device.render(screen, :partial)
+
+    {:ok, screen}
   end
 
   def handle_button(_btn, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 
   def handle_refresh(%{module: module} = screen) when module == __MODULE__ do
@@ -169,7 +173,8 @@ defmodule NameBadge.Screen.Snake do
   def handle_refresh(_screen), do: :ok
 
   def handle_info(:reset, screen) do
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+    {:noreply, screen}
   end
 
   defp update_board(screen, moving_direction \\ nil) do

@@ -67,7 +67,7 @@ defmodule NameBadge.Screen.NameBadge do
   end
 
   @impl true
-  def init(_args, screen) do
+  def mount(_params, screen) do
     config = NameBadge.Config.load_config()
 
     screen =
@@ -103,15 +103,16 @@ defmodule NameBadge.Screen.NameBadge do
     {:ok, assign(screen, :button_hints, %{a: "Next", b: "Back"})}
   end
 
-  @impl true
   def handle_button(_, 0, screen) do
     if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
 
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+
+    {:ok, screen}
   end
 
   def handle_button(_, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 
   defp base_url(), do: Application.get_env(:name_badge, :base_url)

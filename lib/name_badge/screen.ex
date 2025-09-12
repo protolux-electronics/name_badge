@@ -5,7 +5,7 @@ defmodule NameBadge.Screen do
 
   @type t() :: %__MODULE__{}
 
-  @callback mount(params :: list(), screen :: t()) :: {:ok, t()}
+  @callback mount(params :: map(), screen :: t()) :: {:ok, t()}
   @callback render(assigns :: map()) :: String.t()
 
   defmacro __using__(_opts) do
@@ -17,15 +17,30 @@ defmodule NameBadge.Screen do
       alias NameBadge.Device
 
       def init(params) do
-        screen = %NameBadge.Screen{module: __MODULE__, assigns: %{}}
-        {:ok, screen} = __MODULE__.mount(params, screen)
-
-        GenServer.start_link(__MODULE__, screen, name: __MODULE__)
+        GenServer.start_link(__MODULE__, params, name: __MODULE__)
       end
 
-      def start_link(screen) do
+      def send_button_pressed(button, value) do
+        GenServer.cast(__MODULE__, {:button_pressed, button, value})
+      end
+
+      # Callbacks
+
+      def start_link(params) do
+        screen = %NameBadge.Screen{module: __MODULE__, assigns: %{}}
+        __MODULE__.mount(params, screen)
+      end
+
+      def handle_cast({:button_pressed, button, value}, screen) do
+        {:ok, screen} = handle_button(button, value, screen)
+        {:noreply, screen}
+      end
+
+      def handle_button(_button, _value, screen) do
         {:ok, screen}
       end
+
+      defoverridable handle_button: 3
 
       import NameBadge.Screen
     end

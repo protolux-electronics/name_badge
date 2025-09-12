@@ -1,8 +1,9 @@
 defmodule NameBadge.Screen.Schedule do
-  alias NameBadge.ScheduleAPI
   use NameBadge.Screen
 
   require Logger
+
+  alias NameBadge.ScheduleAPI
 
   def render(%{schedule: nil}) do
     """
@@ -87,7 +88,7 @@ defmodule NameBadge.Screen.Schedule do
     "[#image(bytes((#{img_bytes})))][#set align(left + horizon);#{name}]"
   end
 
-  def init(_args, screen) do
+  def mount(_params, screen) do
     screen =
       case ScheduleAPI.load() do
         nil ->
@@ -124,14 +125,18 @@ defmodule NameBadge.Screen.Schedule do
           |> assign(:offset, new_offset)
       end
 
-    {:render, screen}
+    NameBadge.Device.render(screen, :partial)
+
+    {:ok, screen}
   end
 
   def handle_button("BTN_2", 0, screen) do
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+
+    {:ok, screen}
   end
 
   def handle_button(_, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 end

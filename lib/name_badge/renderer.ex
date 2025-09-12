@@ -1,19 +1,12 @@
 defmodule NameBadge.Renderer do
+  @moduledoc """
+  Renders a Screen to the Display.
+  """
+
   require Logger
 
-  def handle_info({:assign, key, value}, state) do
-    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-    schedule_render()
-    {:noreply, state}
-  end
-
-  def handle_info({:survey_question, question}, state) do
-    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
-    state = %{state | current_screen: screen}
-
-    schedule_render(:partial)
-    {:noreply, state}
-  end
+  alias NameBadge.Socket
+  alias NameBadge.Wlan
 
   def render(render_type, screen) do
     voltage = NameBadge.Battery.voltage()
@@ -28,7 +21,7 @@ defmodule NameBadge.Renderer do
         true -> "battery-0.png"
       end
 
-    connected? = VintageNet.get(@wlan0_property) == :internet
+    connected? = Wlan.connected?()
     wifi_icon = if connected?, do: "wifi.png", else: "wifi-slash.png"
     link_icon = if Socket.connected?(), do: "link.png", else: "link-slash.png"
 
