@@ -1,19 +1,19 @@
 defmodule NameBadge.Renderer do
   require Logger
 
-  # def handle_info({:assign, key, value}, state) do
-  #   state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-  #   schedule_render()
-  #   {:noreply, state}
-  # end
+  def handle_info({:assign, key, value}, state) do
+    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
+    schedule_render()
+    {:noreply, state}
+  end
 
-  # def handle_info({:survey_question, question}, state) do
-  #   screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
-  #   state = %{state | current_screen: screen}
+  def handle_info({:survey_question, question}, state) do
+    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
+    state = %{state | current_screen: screen}
 
-  #   schedule_render(:partial)
-  #   {:noreply, state}
-  # end
+    schedule_render(:partial)
+    {:noreply, state}
+  end
 
   def render(render_type, screen) do
     voltage = NameBadge.Battery.voltage()
@@ -105,33 +105,6 @@ defmodule NameBadge.Renderer do
       NameBadge.Display.draw(raw, render_type: render_type)
     else
       error -> Logger.error("rendering error: #{inspect(error)}")
-    end
-  end
-
-  defp send_refresh_event(screen) do
-    cond do
-      function_exported?(screen.module, :handle_refresh, 1) ->
-        screen.module.handle_refresh(screen)
-
-      true ->
-        {:norender, screen}
-    end
-  end
-
-  defp schedule_render(render_type \\ :full), do: send(self(), {:render, render_type})
-
-  def handle_screen_result(result, state) do
-    case result do
-      {:render, screen} ->
-        schedule_render()
-        {:noreply, put_in(state.current_screen, screen)}
-
-      {:partial, screen} ->
-        schedule_render(:partial)
-        {:noreply, put_in(state.current_screen, screen)}
-
-      {:norender, screen} ->
-        {:noreply, put_in(state.current_screen, screen)}
     end
   end
 end

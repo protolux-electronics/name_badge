@@ -15,7 +15,7 @@ defmodule NameBadge.Device do
   end
 
   def render(screen, render_type \\ :full) do
-    GenServer.call(__MODULE__, {:render, screen, render_type})
+    GenServer.cast(__MODULE__, {:render, screen, render_type})
   end
 
   def navigate_back() do
@@ -40,8 +40,9 @@ defmodule NameBadge.Device do
     {:ok, state}
   end
 
-  def handle_call({:render, screen, render_type}, state) do
+  def handle_cast({:render, screen, render_type}, state) do
     do_render(screen, render_type)
+    {:noreply, state}
   end
 
   def handle_call({:navigate, :back}, state) do
@@ -68,7 +69,7 @@ defmodule NameBadge.Device do
   end
 
   defp do_render(screen, render_type) do
-    with {:error, error} <- Renderer.render(screen, render_type) do
+    with {:error, error} <- Renderer.render(render_type, screen) do
       Logger.error(
         "Could not render screen. Error: #{error}. Render Type: #{render_type}. Screen: #{inspect(screen)}"
       )

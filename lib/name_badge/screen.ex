@@ -14,6 +14,8 @@ defmodule NameBadge.Screen do
 
       use GenServer
 
+      alias NameBadge.Device
+
       def init(params) do
         screen = %NameBadge.Screen{module: __MODULE__, assigns: %{}}
         {:ok, screen} = __MODULE__.mount(params, screen)

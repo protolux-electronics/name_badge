@@ -54,6 +54,9 @@ defmodule NameBadge.MixProject do
       # nerves hub
       {:nerves_hub_link, "~> 2.8", targets: @all_targets, runtime: nerves_hub_configured?()},
 
+      # PubSub Event broadcasting
+      {:phoenix_pubsub, "~> 2.1.3"},
+
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
       # bumps to Nerves systems. Since these include Linux kernel and Erlang

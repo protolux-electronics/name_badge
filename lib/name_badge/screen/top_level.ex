@@ -27,10 +27,17 @@ defmodule NameBadge.Screen.TopLevel do
       |> assign(:current_screen_name, name)
       |> assign(:button_hints, %{a: "Next Page", b: "Select"})
 
+    NameBadge.PubSub.subcribe("buttons")
+
     {:ok, screen}
   end
 
-  def handle_button("BTN_1", 0, screen) do
+  def handle_info({:button_pressed, button, value}, screen) do
+    {:ok, screen} = handle_button_pressed(button, value, screen)
+    {:noreply, screen}
+  end
+
+  def handle_button_pressed("BTN_1", 0, screen) do
     new_index = rem(screen.assigns.screen_index + 1, length(@screens))
     {name, _module} = Enum.at(@screens, new_index)
 
@@ -39,16 +46,20 @@ defmodule NameBadge.Screen.TopLevel do
       |> assign(:screen_index, new_index)
       |> assign(:current_screen_name, name)
 
-    {:render, screen}
+    :ok = Device.render(screen, :partial)
+
+    {:ok, screen}
   end
 
-  def handle_button("BTN_2", 0, screen) do
+  def handle_button_pressed("BTN_2", 0, screen) do
     {_name, module} = Enum.at(@screens, screen.assigns.screen_index)
 
-    {:render, navigate(screen, module)}
+    :ok = Device.navigate(module, %{})
+
+    {:ok, screen}
   end
 
-  def handle_button(_button_name, _value, screen) do
-    {:norender, screen}
+  def handle_button_pressed(_button_name, _value, screen) do
+    {:ok, screen}
   end
 end

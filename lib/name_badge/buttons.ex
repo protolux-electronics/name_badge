@@ -32,8 +32,7 @@ defmodule NameBadge.Buttons do
   def handle_info({:circuits_gpio, which_button, _ts, value}, state) do
     Logger.info("button pressed: #{which_button} - #{value}")
 
-    state.current_screen.module.handle_button(which_button, value, state.current_screen)
-    |> handle_screen_result(state)
+    NameBadge.PubSub.broadcast!("buttons", {:button_pressed, which_button, value})
 
     {:noreply, state}
   end

@@ -12,8 +12,7 @@ defmodule NameBadge.Application do
     children =
       [
         # Children for all targets
-        # Starts a worker by calling: NameBadge.Worker.start_link(arg)
-        # {NameBadge.Worker, arg},
+        {Phoenix.PubSub, name: NameBadge.PubSub.name()}
       ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
