@@ -55,7 +55,8 @@ defmodule NameBadge.Socket do
   @impl Slipstream
   def handle_message("survey", "question", question, socket) do
     Logger.info("Received new survey! #{inspect(question)}")
-    send(NameBadge.Renderer, {:survey_question, question})
+
+    :ok = NameBadge.Device.navigate(NameBadge.Screen.Survey, question)
 
     {:ok, socket}
   end

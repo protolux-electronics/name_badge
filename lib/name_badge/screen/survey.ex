@@ -1,8 +1,9 @@
 defmodule NameBadge.Screen.Survey do
-  alias NameBadge.Socket
   use NameBadge.Screen
 
   require Logger
+
+  alias NameBadge.Socket
 
   def render(assigns) do
     """
@@ -10,7 +11,7 @@ defmodule NameBadge.Screen.Survey do
     """
   end
 
-  def init(%{"question" => question, "token" => token}, screen) do
+  def mount(%{"question" => question, "token" => token}, screen) do
     screen =
       screen
       |> assign(:token, token)
@@ -22,17 +23,23 @@ defmodule NameBadge.Screen.Survey do
 
   def handle_button("BTN_1", 0, screen) do
     Logger.debug("BTN 1")
+
     Socket.survey_response(screen.assigns.token, "yes")
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+
+    {:ok, screen}
   end
 
-  def handle_button("BTN_2", _, screen) do
+  def handle_button("BTN_2", 0, screen) do
     Logger.debug("BTN 2")
+
     Socket.survey_response(screen.assigns.token, "no")
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+
+    {:ok, screen}
   end
 
   def handle_button(_, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 end

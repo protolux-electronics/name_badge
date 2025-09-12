@@ -6,6 +6,7 @@ defmodule NameBadge.Screen.TopLevel do
   @screens [
     {"Name Badge", NameBadge.Screen.NameBadge},
     {"Gallery", NameBadge.Screen.Gallery},
+    {"Snake", NameBadge.Screen.Snake},
     {"Schedule", NameBadge.Screen.Schedule},
     {"Settings", NameBadge.Screen.Settings}
   ]
@@ -16,7 +17,7 @@ defmodule NameBadge.Screen.TopLevel do
     """
   end
 
-  def init(_opts, screen) do
+  def mount(_params, screen) do
     {name, _module} = Enum.at(@screens, 0)
 
     screen =
@@ -38,16 +39,20 @@ defmodule NameBadge.Screen.TopLevel do
       |> assign(:screen_index, new_index)
       |> assign(:current_screen_name, name)
 
-    {:render, screen}
+    :ok = Device.render(screen, :partial)
+
+    {:ok, screen}
   end
 
   def handle_button("BTN_2", 0, screen) do
     {_name, module} = Enum.at(@screens, screen.assigns.screen_index)
 
-    {:render, navigate(screen, module)}
+    :ok = Device.navigate(module, %{})
+
+    {:ok, screen}
   end
 
   def handle_button(_button_name, _value, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 end

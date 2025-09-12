@@ -1,4 +1,8 @@
 defmodule NameBadge.Display do
+  @moduledoc """
+  Connects to the EInk display and draws screens upon request.
+  """
+
   use GenServer
 
   require Logger

@@ -1,8 +1,9 @@
 defmodule NameBadge.Screen.Gallery do
-  alias NameBadge.Socket
   use NameBadge.Screen
 
   require Logger
+
+  alias NameBadge.Socket
 
   def render(_assigns) do
     """
@@ -19,7 +20,7 @@ defmodule NameBadge.Screen.Gallery do
     """
   end
 
-  def init(_args, screen) do
+  def mount(_args, screen) do
     Socket.join_gallery()
 
     {:ok, screen}
@@ -27,10 +28,11 @@ defmodule NameBadge.Screen.Gallery do
 
   def handle_button(_, 0, screen) do
     Socket.leave_gallery()
-    {:render, navigate(screen, :back)}
+    NameBadge.Device.navigate_back()
+    {:ok, screen}
   end
 
   def handle_button(_, _, screen) do
-    {:norender, screen}
+    {:ok, screen}
   end
 end

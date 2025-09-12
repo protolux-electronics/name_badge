@@ -1,26 +1,61 @@
 defmodule NameBadge.Screen do
-  defstruct [:action, :module, assigns: %{}]
+  defstruct [:module, assigns: %{}]
+
+  alias __MODULE__
 
   @type t() :: %__MODULE__{}
 
-  @callback init(args :: any(), screen :: t()) :: {:ok, map()}
+  @callback mount(params :: map(), screen :: t()) :: {:ok, t()}
   @callback render(assigns :: map()) :: String.t()
-  @callback handle_button(button_name :: String.t(), value :: integer(), state :: map()) ::
-              {:noreply, map()}
 
   defmacro __using__(_opts) do
     quote do
       @behaviour NameBadge.Screen
 
+      use GenServer
+
+      alias NameBadge.Device
+
+      def init(params) do
+        GenServer.start_link(__MODULE__, params, name: __MODULE__)
+      end
+
+      def send_button_pressed(button, value) do
+        GenServer.cast(__MODULE__, {:button_pressed, button, value})
+      end
+
+      # Callbacks
+
+      def start_link(params) do
+        screen = %NameBadge.Screen{module: __MODULE__, assigns: %{}}
+        __MODULE__.mount(params, screen)
+      end
+
+      def handle_cast({:button_pressed, button, value}, screen) do
+        {:ok, screen} = handle_button(button, value, screen)
+        {:noreply, screen}
+      end
+
+      def handle_button(_button, _value, screen) do
+        {:ok, screen}
+      end
+
+      defoverridable handle_button: 3
+
       import NameBadge.Screen
     end
   end
 
-  def assign(%__MODULE__{} = screen, key, value),
-    do: %{screen | assigns: Map.put(screen.assigns, key, value)}
+  def assign(%Screen{} = screen, key, value) do
+    %{screen | assigns: Map.put(screen.assigns, key, value)}
+  end
 
-  def navigate(%__MODULE__{} = screen, :back), do: Map.put(screen, :action, :back)
+  def assign(%Screen{} = screen, assigns) when is_list(assigns) do
+    assign(screen, Map.new(assigns))
+  end
 
-  def navigate(%__MODULE__{} = screen, module, params \\ []),
-    do: Map.put(screen, :action, {:navigate, module, params})
+  def assign(%Screen{} = screen, assigns) when is_map(assigns) do
+    assigns = Map.merge(screen.assigns, assigns)
+    %{screen | assigns: assigns}
+  end
 end
