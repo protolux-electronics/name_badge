@@ -1,106 +1,21 @@
 defmodule NameBadge.Renderer do
-  use GenServer
-
   require Logger
 
-  alias NameBadge.Screen
-  alias NameBadge.Socket
-  alias Circuits.GPIO
+  # def handle_info({:assign, key, value}, state) do
+  #   state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
+  #   schedule_render()
+  #   {:noreply, state}
+  # end
 
-  @btn_1 "BTN_1"
-  @btn_2 "BTN_2"
-  @wlan0_property ["interface", "wlan0", "connection"]
+  # def handle_info({:survey_question, question}, state) do
+  #   screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
+  #   state = %{state | current_screen: screen}
 
-  def start_link(args \\ []) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
+  #   schedule_render(:partial)
+  #   {:noreply, state}
+  # end
 
-  @impl GenServer
-  def init(_opts) do
-    {:ok, btn_1} = GPIO.open(@btn_1, :input)
-    {:ok, btn_2} = GPIO.open(@btn_2, :input)
-
-    GPIO.set_interrupts(btn_1, :both)
-    GPIO.set_interrupts(btn_2, :both)
-
-    VintageNet.subscribe(@wlan0_property)
-
-    screen = %Screen{module: Screen.TopLevel}
-    {:ok, screen} = Screen.TopLevel.init([], screen)
-
-    schedule_render()
-    {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: screen}}
-  end
-
-  @impl GenServer
-  def handle_info(:render, state) do
-    handle_info({:render, :full}, state)
-  end
-
-  @impl GenServer
-  def handle_info({:render, render_type}, state) do
-    state =
-      case state.current_screen do
-        %Screen{action: :back} ->
-          [prev_screen | rest] = state.stack
-          Map.merge(state, %{stack: rest, current_screen: prev_screen})
-
-        %Screen{action: {:navigate, module, params}} = screen ->
-          new_stack = [Map.put(screen, :action, nil) | state.stack]
-
-          new_screen = %Screen{module: module}
-          {:ok, new_screen} = module.init(params, new_screen)
-
-          Map.merge(state, %{stack: new_stack, current_screen: new_screen})
-
-        _screen ->
-          state
-      end
-
-    render_screen(state.current_screen, render_type)
-
-    send_refresh_event(state.current_screen)
-    |> handle_screen_result(state)
-  end
-
-  @impl GenServer
-  def handle_info({:circuits_gpio, which_button, _ts, value}, state) do
-    Logger.info("button pressed: #{which_button} - #{value}")
-
-    state.current_screen.module.handle_button(which_button, value, state.current_screen)
-    |> handle_screen_result(state)
-  end
-
-  def handle_info({:assign, key, value}, state) do
-    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-    schedule_render()
-    {:noreply, state}
-  end
-
-  def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
-    schedule_render(:partial)
-    {:noreply, state}
-  end
-
-  def handle_info({:survey_question, question}, state) do
-    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
-    state = %{state | current_screen: screen}
-
-    schedule_render(:partial)
-    {:noreply, state}
-  end
-
-  def handle_info(message, state) do
-    if Kernel.function_exported?(state.current_screen.module, :handle_info, 2) do
-      state.current_screen.module.handle_info(message, state.current_screen)
-      |> handle_screen_result(state)
-    else
-      Logger.info("No handler for handle_info: #{inspect(message)}")
-      {:noreply, state}
-    end
-  end
-
-  defp render_screen(screen, render_type) do
+  def render(render_type, screen) do
     voltage = NameBadge.Battery.voltage()
 
     battery_icon =

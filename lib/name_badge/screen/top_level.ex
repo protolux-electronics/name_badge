@@ -17,7 +17,7 @@ defmodule NameBadge.Screen.TopLevel do
     """
   end
 
-  def init(_opts, screen) do
+  def mount(_params, screen) do
     {name, _module} = Enum.at(@screens, 0)
 
     screen =

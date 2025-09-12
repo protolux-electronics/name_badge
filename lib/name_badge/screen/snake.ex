@@ -2,13 +2,18 @@ defmodule NameBadge.Screen.Snake do
   use NameBadge.Screen
 
   @board_size 8
-  @draw_interval :timer.seconds(1)
   @reset_interval :timer.seconds(5)
 
   @zero_size @board_size - 1
 
   def init(_args, screen) do
-    {:ok, reset_board(screen)}
+    initial_snake = [{3, 3}, {3, 4}, {3, 5}]
+    initial_target = {1, 1}
+
+    screen =
+      assign(screen, snake: initial_snake, target: initial_target, game_over: false, points: 0)
+
+    {:ok, screen}
   end
 
   def render(assigns) do
@@ -17,7 +22,7 @@ defmodule NameBadge.Screen.Snake do
     """
     // Configuration
     #let board-size = #{@board_size}
-    #let cell-size = 15pt
+    #let cell-size = 18pt
     #let border-width = 1pt
 
     // Snake position (head to tail)
@@ -63,7 +68,7 @@ defmodule NameBadge.Screen.Snake do
         cell-content = circle(
           radius: cell-size * 0.35,
           fill: snake-head-color,
-          stroke: rgb("#2d5016") + 1pt
+          stroke: rgb("#000") + 1pt
         )
       } else if is-snake-position(pos) {
         // Snake body
@@ -71,7 +76,7 @@ defmodule NameBadge.Screen.Snake do
           width: cell-size * 0.7,
           height: cell-size * 0.7,
           fill: snake-body-color,
-          stroke: rgb("#2d5016") + 1pt,
+          stroke: rgb("#000") + 1pt,
           radius: 2pt
         )
       } else {
@@ -110,13 +115,17 @@ defmodule NameBadge.Screen.Snake do
     #align(center)[
       #text(size: 24pt, weight: "bold", font: "New Amsterdam", fill: rgb("#{if game_over, do: "#000", else: "#fff"}"))[Game Over!]
 
+      #v(-20pt)
+
       #box(
         stroke: rgb("#000") + 3pt,
       )[
         #snake-board()
       ]
 
-      #text(size: 20pt, weight: "bold", font: "New Amsterdam")[Points: #{points}]
+      #v(-15pt)
+
+      #text(size: 18pt, weight: "bold", font: "New Amsterdam")[Points: #{points}]
     ]
     """
   end
@@ -132,7 +141,7 @@ defmodule NameBadge.Screen.Snake do
         :down -> :right
       end
 
-    screen = screen |> cancel_tick() |> update_board(new_direction)
+    screen = screen |> update_board(new_direction)
     {:partial, screen}
   end
 
@@ -145,7 +154,7 @@ defmodule NameBadge.Screen.Snake do
         :up -> :right
       end
 
-    screen = screen |> cancel_tick() |> update_board(new_direction)
+    screen = screen |> update_board(new_direction)
     {:partial, screen}
   end
 
@@ -153,21 +162,14 @@ defmodule NameBadge.Screen.Snake do
     {:norender, screen}
   end
 
-  def handle_info(:tick, screen) do
+  def handle_refresh(%{module: module} = screen) when module == __MODULE__ do
     {:partial, update_board(screen)}
   end
 
+  def handle_refresh(_screen), do: :ok
+
   def handle_info(:reset, screen) do
     {:render, navigate(screen, :back)}
-  end
-
-  defp reset_board(screen) do
-    initial_snake = [{3, 3}, {3, 4}, {3, 5}]
-    initial_target = {1, 1}
-
-    screen
-    |> assign(snake: initial_snake, target: initial_target, game_over: false, points: 0)
-    |> schedule_tick()
   end
 
   defp update_board(screen, moving_direction \\ nil) do
@@ -193,25 +195,14 @@ defmodule NameBadge.Screen.Snake do
     |> then(fn screen ->
       if screen.assigns.game_over do
         schedule_reset()
-        screen
-      else
-        schedule_tick(screen)
       end
+
+      screen
     end)
   end
 
   defp schedule_reset() do
     Process.send_after(self(), :reset, @reset_interval)
-  end
-
-  defp schedule_tick(screen) do
-    timer_ref = Process.send_after(self(), :tick, @draw_interval)
-    assign(screen, :timer, timer_ref)
-  end
-
-  defp cancel_tick(screen) do
-    Process.cancel_timer(screen.assigns.timer)
-    assign(screen, :timer, nil)
   end
 
   defp next_head([{x, y} | _rest] = _snake, moving_direction) do

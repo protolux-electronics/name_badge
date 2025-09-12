@@ -40,12 +40,9 @@ defmodule NameBadge.Application do
         NameBadge.Socket,
         NameBadge.Battery,
         NameBadge.ScheduleUpdater,
-        {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"},
-        {Task,
-         fn ->
-           Process.sleep(2_000)
-           Circuits.GPIO.open("WIFI_EN", :output, initial_value: 0)
-         end}
+        NameBadge.Device,
+        NameBadge.Buttons,
+        NameBadge.Wlan
       ]
     end
   end
