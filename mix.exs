@@ -3,7 +3,7 @@ defmodule NameBadge.MixProject do
 
   @app :name_badge
   @version "0.1.0"
-  @all_targets [:vitis]
+  @all_targets [:trellis]
 
   def project do
     [
@@ -52,7 +52,7 @@ defmodule NameBadge.MixProject do
       {:eink, github: "protolux-electronics/eink", targets: @all_targets},
 
       # nerves hub
-      {:nerves_hub_link, "~> 2.8", targets: @all_targets},
+      {:nerves_hub_link, "~> 2.8", targets: @all_targets, runtime: nerves_hub_configured?()},
 
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
@@ -60,10 +60,7 @@ defmodule NameBadge.MixProject do
       # version updates, please review their release notes in case
       # changes to your application are needed.
       {:nerves_system_trellis,
-       github: "protolux-electronics/nerves_system_trellis",
-       ref: "add_wifi_drivers",
-       runtime: false,
-       targets: :vitis}
+       github: "protolux-electronics/nerves_system_trellis", runtime: false, targets: :trellis}
     ]
   end
 
@@ -77,5 +74,9 @@ defmodule NameBadge.MixProject do
       steps: [&Nerves.Release.init/1, :assemble],
       strip_beams: Mix.env() == :prod or [keep: ["Docs"]]
     ]
+  end
+
+  def nerves_hub_configured?() do
+    Application.get_env(:nerves_hub_link, :host) != nil
   end
 end

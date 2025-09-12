@@ -1,5 +1,5 @@
 [env]
-MIX_TARGET = "vitis"
+MIX_TARGET = "trellis"
 
 [tools]
 elixir = "1.18.3-otp-27"
