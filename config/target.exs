@@ -28,7 +28,7 @@ config :nerves_ssh,
   daemon_option_overrides: [
     {:pwdfun, &NameBadge.ssh_check_pass/2},
     {:auth_method_kb_interactive_data, &NameBadge.ssh_show_prompt/3}
-    ]
+  ]
 
 # Configure the network using vintage_net
 #

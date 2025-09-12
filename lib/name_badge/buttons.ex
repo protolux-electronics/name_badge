@@ -12,13 +12,13 @@ defmodule NameBadge.Buttons do
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
 
-  def init(_args) do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   # Callbacks
 
-  def start_link(_args) do
+  def init(_args) do
     {:ok, btn_1} = GPIO.open(@btn_1, :input)
     {:ok, btn_2} = GPIO.open(@btn_2, :input)
 

@@ -33,5 +33,4 @@ defmodule NameBadge do
 
     {~c"Protolux Goatmire Name Badge", to_charlist(msg), ~c"Password: ", false}
   end
-
 end

@@ -16,7 +16,7 @@ defmodule NameBadge.Screen do
 
       alias NameBadge.Device
 
-      def init(params) do
+      def start_link(params) do
         GenServer.start_link(__MODULE__, params, name: __MODULE__)
       end
 
@@ -24,11 +24,19 @@ defmodule NameBadge.Screen do
         GenServer.cast(__MODULE__, {:button_pressed, button, value})
       end
 
+      def get_screen() do
+        GenServer.call(__MODULE__, :get_screen)
+      end
+
       # Callbacks
 
-      def start_link(params) do
+      def init(params) do
         screen = %NameBadge.Screen{module: __MODULE__, assigns: %{}}
         __MODULE__.mount(params, screen)
+      end
+
+      def handle_call(:get_screen, _from, screen) do
+        {:reply, screen, screen}
       end
 
       def handle_cast({:button_pressed, button, value}, screen) do

@@ -1,7 +1,10 @@
 defmodule NameBadge.Screen.Snake do
   use NameBadge.Screen
 
+  require Logger
+
   @board_size 8
+  @draw_interval :timer.seconds(1.5)
   @reset_interval :timer.seconds(5)
 
   @zero_size @board_size - 1
@@ -11,7 +14,11 @@ defmodule NameBadge.Screen.Snake do
     initial_target = {1, 1}
 
     screen =
-      assign(screen, snake: initial_snake, target: initial_target, game_over: false, points: 0)
+      screen
+      |> assign(snake: initial_snake, target: initial_target, game_over: false, points: 0)
+      |> schedule_tick()
+
+    Logger.info("Starting a new Snake game with: #{inspect(screen)}")
 
     {:ok, screen}
   end
@@ -141,7 +148,7 @@ defmodule NameBadge.Screen.Snake do
         :down -> :right
       end
 
-    screen = update_board(screen, new_direction)
+    screen = screen |> cancel_tick() |> update_board(new_direction)
     NameBadge.Device.render(screen, :partial)
 
     {:ok, screen}
@@ -156,7 +163,7 @@ defmodule NameBadge.Screen.Snake do
         :up -> :right
       end
 
-    screen = update_board(screen, new_direction)
+    screen = screen |> cancel_tick() |> update_board(new_direction)
     NameBadge.Device.render(screen, :partial)
 
     {:ok, screen}
@@ -166,14 +173,16 @@ defmodule NameBadge.Screen.Snake do
     {:ok, screen}
   end
 
-  def handle_refresh(%{module: module} = screen) when module == __MODULE__ do
-    {:partial, update_board(screen)}
-  end
-
-  def handle_refresh(_screen), do: :ok
-
   def handle_info(:reset, screen) do
     NameBadge.Device.navigate_back()
+    {:noreply, screen}
+  end
+
+  def handle_info(:tick, screen) do
+    screen = update_board(screen)
+
+    NameBadge.Device.render(screen, :partial)
+
     {:noreply, screen}
   end
 
@@ -200,14 +209,29 @@ defmodule NameBadge.Screen.Snake do
     |> then(fn screen ->
       if screen.assigns.game_over do
         schedule_reset()
+        screen
+      else
+        schedule_tick(screen)
       end
-
-      screen
     end)
   end
 
   defp schedule_reset() do
     Process.send_after(self(), :reset, @reset_interval)
+  end
+
+  defp schedule_tick(screen) do
+    timer_ref = Process.send_after(self(), :tick, @draw_interval)
+    assign(screen, :timer, timer_ref)
+  end
+
+  defp cancel_tick(screen) do
+    if screen.assigns[:timer] do
+      Process.cancel_timer(screen.assigns.timer)
+      Logger.info("Canceled Tick Timer")
+    end
+
+    assign(screen, :timer, nil)
   end
 
   defp next_head([{x, y} | _rest] = _snake, moving_direction) do
