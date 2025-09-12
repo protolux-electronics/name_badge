@@ -37,6 +37,7 @@ Host wisteria*.local
   - Turn off the device, with the case open
   - Connect your computer via USB
   - Press the button labeled `FEL`
+  - Turn on the device, release the `FEL` button
   - Run `./launch.sh trellis` from the `release` dir of the `usb_fel_loaders`
     assets
   - The board will reboot and appear as a USB media device (on Mac, your
@@ -52,7 +53,12 @@ username/password prompt, both values are `nerves`.
 
 ## Building the firmware
 
+You need a rust toolchain installed. Plus the following architecture:
+
+`rustup target add armv7-unknown-linux-gnueabihf`
+
 - `export MIX_TARGET=trellis`
+- `export BASE_URL=goatmire.fly.dev`
 - `mix deps.get`
 - `mix firmware`
 - Put the device in FEL mode, as described above
