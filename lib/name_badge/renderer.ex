@@ -28,7 +28,8 @@ defmodule NameBadge.Renderer do
     screen = %Screen{module: Screen.TopLevel}
     {:ok, screen} = Screen.TopLevel.init([], screen)
 
-    {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: screen}, {:continue, :render}}
+    schedule_render()
+    {:ok, %{btn_1: btn_1, btn_2: btn_2, stack: [], current_screen: screen}}
   end
 
   @impl GenServer
@@ -196,10 +197,9 @@ defmodule NameBadge.Renderer do
     cond do
       function_exported?(screen.module, :handle_refresh, 1) ->
         screen.module.handle_refresh(screen)
-        :ok
 
       true ->
-        :ok
+        {:norender, screen}
     end
   end
 

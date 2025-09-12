@@ -20,10 +20,6 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
-    # initial_frame =
-    #   Application.app_dir(:name_badge, "priv/soleil.bin")
-    #   |> File.read!()
-
     initial_frame =
       """
       #set page(width: 400pt, height: 300pt)
