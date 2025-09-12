@@ -2,7 +2,7 @@ defmodule NameBadge.MixProject do
   use Mix.Project
 
   @app :name_badge
-  @version "0.1.0"
+  @version "0.2.0"
   @all_targets [:trellis]
 
   def project do
