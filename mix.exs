@@ -2,11 +2,13 @@ defmodule NameBadge.MixProject do
   use Mix.Project
 
   @app :name_badge
+  @name "goatmire"
   @version "0.2.0"
   @all_targets [:trellis]
 
   def project do
     [
+      name: @name,
       app: @app,
       version: @version,
       elixir: "~> 1.18",
