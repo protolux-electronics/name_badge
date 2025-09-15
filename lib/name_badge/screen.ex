@@ -14,6 +14,8 @@ defmodule NameBadge.Screen do
 
       use GenServer
 
+      require Logger
+
       alias NameBadge.Device
 
       def start_link(params) do
@@ -36,6 +38,7 @@ defmodule NameBadge.Screen do
       end
 
       def handle_call(:get_screen, _from, screen) do
+        Logger.debug("Returning screen: #{inspect(screen)}")
         {:reply, screen, screen}
       end
 
@@ -45,6 +48,10 @@ defmodule NameBadge.Screen do
       end
 
       def handle_button(_button, _value, screen) do
+        Logger.error(
+          "Fallback handle_button/3 was used. Please implement it in the screen: #{screen.module}"
+        )
+
         {:ok, screen}
       end
 

@@ -52,7 +52,7 @@ defmodule NameBadge.Device do
   # Callbacks
 
   def init(_opts) do
-    initial_module = Screen.TopLevel
+    initial_module = Screen.Startup
 
     initial_module.start_link(%{})
 
@@ -98,9 +98,11 @@ defmodule NameBadge.Device do
   end
 
   defp navigate_to(module, params, state) do
+    Logger.info("Navigating to #{module}. New stack: #{inspect(state.stack)}")
+
     # Stop the previous screen if it is different
     if module != state.current_module do
-      Logger.info("Stopping screen #{module}")
+      Logger.info("Stopping screen #{state.current_module}")
       GenServer.stop(state.current_module)
     end
 
@@ -108,7 +110,7 @@ defmodule NameBadge.Device do
     Logger.info("Starting screen #{module}")
     module.start_link(params)
     screen = module.get_screen()
-    :ok = do_render(screen, :full)
+    :ok = render(screen, :full)
 
     Logger.info("Started and rendered new screen #{module}")
 
@@ -118,7 +120,7 @@ defmodule NameBadge.Device do
   end
 
   defp do_render(%Screen{} = screen, render_type) do
-    with {:error, error} <- Renderer.render(render_type, screen) do
+    with {:error, error} <- Renderer.render(screen, render_type) do
       Logger.error(
         "Could not render screen. Error: #{error}. Render Type: #{render_type}. Screen: #{inspect(screen)}"
       )

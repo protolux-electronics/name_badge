@@ -10,12 +10,20 @@ defmodule NameBadge.Screen.Snake do
   @zero_size @board_size - 1
 
   def mount(_params, screen) do
+    Logger.info("Mounting Snake!")
+
     initial_snake = [{3, 3}, {3, 4}, {3, 5}]
     initial_target = {1, 1}
 
     screen =
       screen
-      |> assign(snake: initial_snake, target: initial_target, game_over: false, points: 0)
+      |> assign(
+        snake: initial_snake,
+        target: initial_target,
+        game_won: false,
+        game_over: false,
+        points: 0
+      )
       |> schedule_tick()
 
     Logger.info("Starting a new Snake game with: #{inspect(screen)}")
@@ -24,7 +32,8 @@ defmodule NameBadge.Screen.Snake do
   end
 
   def render(assigns) do
-    %{snake: snake, target: target, game_over: game_over, points: points} = assigns
+    %{snake: snake, target: target, game_won: game_won, game_over: game_over, points: points} =
+      assigns
 
     """
     // Configuration
@@ -120,7 +129,7 @@ defmodule NameBadge.Screen.Snake do
 
     // Game title and board
     #align(center)[
-      #text(size: 24pt, weight: "bold", font: "New Amsterdam", fill: rgb("#{if game_over, do: "#000", else: "#fff"}"))[Game Over!]
+      #text(size: 24pt, weight: "bold", font: "New Amsterdam", fill: rgb("#{if game_over, do: "#000", else: "#fff"}"))[#{if game_won, do: "Game Won!", else: "Game Over!"}]
 
       #v(-20pt)
 
@@ -199,6 +208,9 @@ defmodule NameBadge.Screen.Snake do
 
       snake_bites_itself?(new_head, snake) ->
         assign(screen, game_over: true)
+
+      new_head == target ->
+        assign(screen, game_won: true, game_over: true)
 
       snake_eats_target?(new_head, target) ->
         assign(screen, snake: [new_head | snake], target: new_target, points: points + 1)

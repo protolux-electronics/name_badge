@@ -3,12 +3,72 @@ defmodule NameBadge.Renderer do
   Renders a Screen to the Display.
   """
 
+  defmodule Frame do
+    defstruct [:module, :screen, :render_type]
+  end
+
+  # Check every 100ms for a new frame
+  @render_poll_interval 100
+
   require Logger
+
+  use GenServer
 
   alias NameBadge.Socket
   alias NameBadge.Wlan
 
-  def render(render_type, screen) do
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  def render(screen, render_type) do
+    GenServer.cast(__MODULE__, {:render, screen, render_type})
+  end
+
+  # Callbacks
+
+  @impl GenServer
+  def init(_args) do
+    buffer = :queue.new()
+    schedule_render()
+
+    {:ok, buffer}
+  end
+
+  @impl GenServer
+  def handle_cast({:render, screen, render_type}, buffer) do
+    frame = %Frame{module: screen.module, screen: screen, render_type: render_type}
+
+    # Only keep the latest frame per module in the buffer and delete the old frame.
+    buffer = :queue.delete_with(fn old_frame -> old_frame.module == frame.module end, buffer)
+    buffer = :queue.in(frame, buffer)
+
+    {:noreply, buffer}
+  end
+
+  @impl GenServer
+  def handle_info(:render_next_frame, buffer) do
+    {frame, buffer} =
+      case :queue.out(buffer) do
+        {{:value, frame}, buffer} -> {frame, buffer}
+        {:empty, buffer} -> {nil, buffer}
+      end
+
+    if frame, do: do_render(frame)
+
+    schedule_render()
+
+    {:noreply, buffer}
+  end
+
+  defp schedule_render() do
+    Process.send_after(__MODULE__, :render_next_frame, @render_poll_interval)
+  end
+
+  defp do_render(frame) do
+    screen = frame.screen
+    render_type = frame.render_type
+
     voltage = NameBadge.Battery.voltage()
 
     battery_icon =

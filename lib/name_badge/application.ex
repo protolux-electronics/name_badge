@@ -38,6 +38,7 @@ defmodule NameBadge.Application do
         NameBadge.Socket,
         NameBadge.Battery,
         NameBadge.ScheduleUpdater,
+        NameBadge.Renderer,
         NameBadge.Device,
         NameBadge.Buttons,
         NameBadge.Wlan

@@ -190,7 +190,7 @@ defmodule NameBadge.Screen.Settings do
   def handle_button("BTN_2", 0, screen) do
     if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
 
-    NameBadge.Device.navigate_back()
+    :ok = NameBadge.Device.navigate_back()
 
     {:ok, screen}
   end

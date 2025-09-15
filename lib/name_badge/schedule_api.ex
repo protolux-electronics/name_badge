@@ -6,40 +6,40 @@ defmodule NameBadge.ScheduleAPI do
   def get(opts \\ []) do
     image_size = Keyword.get(opts, :image_size, 32)
 
-    {:ok, %{body: %{"speakers" => speakers, "sessions" => sessions}}} = Req.get(@url)
+    with {:ok, %{body: %{"speakers" => speakers, "sessions" => sessions}}} <- Req.get(@url) do
+      speakers =
+        for speaker <- speakers, into: %{} do
+          img =
+            case speaker["profilePicture"] do
+              url when is_binary(url) ->
+                {:ok, %{body: bytes}} = Req.get(url)
 
-    speakers =
-      for speaker <- speakers, into: %{} do
-        img =
-          case speaker["profilePicture"] do
-            url when is_binary(url) ->
-              {:ok, %{body: bytes}} = Req.get(url)
+                {:ok, img} = Dither.decode(bytes)
+                {:ok, img} = Dither.resize(img, image_size, image_size)
+                {:ok, img} = Dither.dither(img, algorithm: :atkinson)
+                {:ok, img} = Dither.encode(img)
 
-              {:ok, img} = Dither.decode(bytes)
-              {:ok, img} = Dither.resize(img, image_size, image_size)
-              {:ok, img} = Dither.dither(img, algorithm: :atkinson)
-              {:ok, img} = Dither.encode(img)
+                Base.encode64(img)
 
-              Base.encode64(img)
+              nil ->
+                nil
+            end
 
-            nil ->
-              nil
-          end
+          {speaker["id"], %{name: speaker["fullName"], photo: img}}
+        end
 
-        {speaker["id"], %{name: speaker["fullName"], photo: img}}
+      for session <- sessions do
+        %{
+          title: session["title"],
+          starts_at:
+            NaiveDateTime.from_iso8601!(session["startsAt"])
+            |> DateTime.from_naive!(@timezone),
+          ends_at:
+            NaiveDateTime.from_iso8601!(session["endsAt"])
+            |> DateTime.from_naive!(@timezone),
+          speakers: session["speakers"] |> Enum.map(&speakers[&1])
+        }
       end
-
-    for session <- sessions do
-      %{
-        title: session["title"],
-        starts_at:
-          NaiveDateTime.from_iso8601!(session["startsAt"])
-          |> DateTime.from_naive!(@timezone),
-        ends_at:
-          NaiveDateTime.from_iso8601!(session["endsAt"])
-          |> DateTime.from_naive!(@timezone),
-        speakers: session["speakers"] |> Enum.map(&speakers[&1])
-      }
     end
   end
 

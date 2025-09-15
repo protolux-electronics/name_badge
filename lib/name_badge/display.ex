@@ -24,22 +24,7 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
-    initial_frame =
-      """
-      #set page(width: 400pt, height: 300pt)
-      #place(center + horizon, image("images/logos.svg", width: 196pt))
-      """
-      |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
-      |> List.first()
-      |> Dither.decode!()
-      |> Dither.grayscale!()
-      |> Dither.to_raw!()
-      |> pack_bits()
-
     EInk.clear(eink, :white)
-    EInk.draw(eink, initial_frame)
-
-    Process.sleep(5_000)
 
     {:ok, %{eink: eink}}
   end
