@@ -38,8 +38,8 @@ defmodule NameBadge.MixProject do
       {:toolshed, "~> 0.4.0"},
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
-      {:dither, github: "protolux-electronics/dither"},
-      {:typst, github: "gworkman/typst"},
+      {:dither, "~> 0.1"},
+      {:typst, "~> 0.1.7"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
 
