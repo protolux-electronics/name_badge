@@ -37,6 +37,7 @@ config :nerves_ssh,
 # See https://github.com/nerves-networking/vintage_net for more information
 config :vintage_net,
   regulatory_domain: "00",
+  power_managers: [{NameBadge.Wifi, [gpio: "WIFI_EN", ifname: "wlan0"]}],
   config: [
     {"usb0", %{type: VintageNetDirect}},
     {"eth0",
