@@ -7,6 +7,8 @@ defmodule NameBadge.Application do
 
   @impl true
   def start(_type, _args) do
+    setup_wifi()
+
     children =
       [
         # Children for all targets
@@ -35,9 +37,44 @@ defmodule NameBadge.Application do
     defp target_children() do
       [
         NameBadge.Display,
+        NameBadge.Socket,
         NameBadge.Battery,
         {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"}
       ]
     end
+  end
+
+  if Mix.target() == :host do
+    defp setup_wifi(), do: :ok
+  else
+    defp setup_wifi() do
+      kv = Nerves.Runtime.KV.get_all()
+
+      if true?(kv["wifi_force"]) or not wlan0_configured?() do
+        ssid = kv["wifi_ssid"]
+        passphrase = kv["wifi_passphrase"]
+
+        unless empty?(ssid) do
+          _ = VintageNetWiFi.quick_configure(ssid, passphrase)
+          :ok
+        end
+      end
+    end
+
+    defp wlan0_configured?() do
+      VintageNet.get_configuration("wlan0") |> VintageNetWiFi.network_configured?()
+    catch
+      _, _ -> false
+    end
+
+    defp true?(""), do: false
+    defp true?(nil), do: false
+    defp true?("false"), do: false
+    defp true?("FALSE"), do: false
+    defp true?(_), do: true
+
+    defp empty?(""), do: true
+    defp empty?(nil), do: true
+    defp empty?(_), do: false
   end
 end
