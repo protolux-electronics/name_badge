@@ -38,8 +38,7 @@ Host wisteria*.local
   - Connect your computer via USB
   - Press the button labeled `FEL`
   - Turn on the device, release the `FEL` button
-  - Run `./launch.sh trellis` from the `release` dir of the `usb_fel_loaders`
-    assets
+  - Run `./launch.sh trellis` from the an unzipped release which you can download from the [usb_fel_loaders repo](https://github.com/gworkman/usb_fel_loaders/releases)
   - The board will reboot and appear as a USB media device (on Mac, your
     computer may say "Device was uninitialized". Just press "ignore").
   - Finally, run

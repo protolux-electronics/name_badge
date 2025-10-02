@@ -28,8 +28,6 @@ config :name_badge,
        :base_url,
        System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
-config :rustler_precompiled, :force_build, typst: true
-
 if Mix.target() == :host do
   import_config "host.exs"
 else

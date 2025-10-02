@@ -3,7 +3,7 @@ defmodule NameBadge.MixProject do
 
   @app :name_badge
   @name "goatmire"
-  @version "0.2.0"
+  @version "0.3.1"
   @all_targets [:trellis]
 
   def project do
@@ -23,7 +23,7 @@ defmodule NameBadge.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :runtime_tools],
+      extra_applications: [:logger, :runtime_tools, :eex],
       mod: {NameBadge.Application, []}
     ]
   end
@@ -38,8 +38,8 @@ defmodule NameBadge.MixProject do
       {:toolshed, "~> 0.4.0"},
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
-      {:dither, github: "protolux-electronics/dither"},
-      {:typst, github: "gworkman/typst"},
+      {:dither, "~> 0.1"},
+      {:typst, "~> 0.1.7"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
 
@@ -50,11 +50,8 @@ defmodule NameBadge.MixProject do
       # Dependencies for all targets except :host
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
-      {:circuits_gpio, "~> 2.0", targets: @all_targets},
+      {:circuits_gpio, "~> 2.1.3", targets: @all_targets},
       {:eink, github: "protolux-electronics/eink", targets: @all_targets},
-
-      # nerves hub
-      {:nerves_hub_link, "~> 2.8", targets: @all_targets, runtime: nerves_hub_configured?()},
 
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
@@ -63,7 +60,10 @@ defmodule NameBadge.MixProject do
       # changes to your application are needed.
       {:nerves_system_trellis,
        github: "protolux-electronics/nerves_system_trellis", runtime: false, targets: :trellis}
-    ]
+    ] ++
+      if nerves_hub_configured?(),
+        do: [{:nerves_hub_link, "~> 2.8", targets: @all_targets}],
+        else: []
   end
 
   def release do
@@ -79,6 +79,9 @@ defmodule NameBadge.MixProject do
   end
 
   def nerves_hub_configured?() do
-    Application.get_env(:nerves_hub_link, :host) != nil
+    product_key = System.get_env("NH_PRODUCT_KEY")
+    product_secret = System.get_env("NH_PRODUCT_SECRET")
+
+    not is_nil(product_key) and not is_nil(product_secret)
   end
 end
