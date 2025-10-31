@@ -17,11 +17,13 @@ defmodule NameBadge.Renderer do
 
   @impl GenServer
   def init(_opts) do
-    {:ok, btn_1} = GPIO.open(@btn_1, :input)
-    {:ok, btn_2} = GPIO.open(@btn_2, :input)
+    # {:ok, btn_1} = GPIO.open(@btn_1, :input)
+    # {:ok, btn_2} = GPIO.open(@btn_2, :input)
 
-    :ok = GPIO.set_interrupts(btn_1, :both)
-    :ok = GPIO.set_interrupts(btn_2, :both)
+    # :ok = GPIO.set_interrupts(btn_1, :both)
+    # :ok = GPIO.set_interrupts(btn_2, :both)
+    btn_1 = nil
+    btn_2 = nil
 
     VintageNet.subscribe(@wlan0_property)
 

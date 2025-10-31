@@ -36,12 +36,19 @@ defmodule NameBadge.Application do
   else
     defp target_children() do
       [
+        {Registry, name: NameBadge.Registry, keys: :duplicate},
+        button_spec(:button_1),
+        button_spec(:button_2),
         NameBadge.Display,
         NameBadge.Socket,
-        NameBadge.Battery,
-        {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"}
+        NameBadge.Battery
       ]
     end
+  end
+
+  defp button_spec(button_name, opts \\ []) do
+    spec = {NameBadge.ButtonMonitor, Keyword.put(opts, :button, button_name)}
+    Supervisor.child_spec(spec, id: button_name)
   end
 
   if Mix.target() == :host do
