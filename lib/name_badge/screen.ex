@@ -16,7 +16,7 @@ defmodule NameBadge.Screen do
     first_render?: true,
     action: nil,
     mount_args: nil,
-    last_render: %{assigns: %{}, hash: nil}
+    last_render: %{}
   ]
 
   def start_link(args) do
@@ -135,7 +135,7 @@ defmodule NameBadge.Screen do
   defp maybe_render(%__MODULE__{} = screen) do
     cond do
       screen.first_render? -> {:noreply, screen, {:continue, {:render, []}}}
-      Map.equal?(screen.last_render.assigns, screen.assigns) -> {:noreply, screen}
+      Map.equal?(screen.last_render, screen.assigns) -> {:noreply, screen}
       true -> {:noreply, screen, {:continue, {:render, [refresh_type: :partial]}}}
     end
   end
