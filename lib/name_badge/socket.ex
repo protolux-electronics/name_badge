@@ -35,10 +35,7 @@ defmodule NameBadge.Socket do
   def handle_message("device_gallery", "image", %{"url" => url}, socket) do
     {:ok, %{body: image}} = Req.get(url)
 
-    {:ok, image} = Dither.decode(image)
-    {:ok, raw} = Dither.to_raw(image)
-
-    NameBadge.Display.draw(raw)
+    raise "TODO"
 
     {:ok, socket}
   end

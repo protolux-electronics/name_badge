@@ -3,12 +3,24 @@ defmodule NameBadge.Display do
 
   require Logger
 
+  alias NameBadge.Layout
+
+  @initial_frame """
+  #place(center + horizon, image("images/logos.svg", width: 196pt))
+  """
+
+  @threshold 100
+
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def draw(image, opts \\ []) do
-    GenServer.call(__MODULE__, {:draw, image, opts})
+  def render_typst(markup, opts \\ []) do
+    GenServer.call(__MODULE__, {:render_typst, markup, opts})
+  end
+
+  def render_png(png, opts \\ []) do
+    GenServer.call(__MODULE__, {:render_png, png, opts})
   end
 
   def init(_opts) do
@@ -20,40 +32,67 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
-    initial_frame =
-      """
-      #set page(width: 400pt, height: 300pt)
-      #place(center + horizon, image("images/logos.svg", width: 196pt))
-      """
-      |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
-      |> List.first()
-      |> Dither.decode!()
-      |> Dither.grayscale!()
-      |> Dither.to_raw!()
-      |> pack_bits()
+    initial_screen =
+      Layout.root_layout(@initial_frame)
+      |> eval_template()
+      |> prepare_png()
 
     EInk.clear(eink, :white)
-    EInk.draw(eink, initial_frame)
+    EInk.draw(eink, initial_screen)
 
-    Process.sleep(5_000)
+    Process.sleep(:timer.seconds(3))
 
     {:ok, %{eink: eink}}
   end
 
-  def handle_call({:draw, image, opts}, _from, state) do
-    img_packed = pack_bits(image)
-    EInk.draw(state.eink, img_packed, opts)
+  def handle_call({:render_typst, markup, opts}, _from, state) do
+    eink_data =
+      eval_template(markup)
+      |> prepare_png()
+
+    EInk.draw(state.eink, eink_data, opts)
 
     {:reply, :ok, state}
   end
 
-  defp pack_bits(""), do: ""
+  def handle_call({:render_png, png, opts}, _from, state) do
+    eink_data = prepare_png(png)
 
-  defp pack_bits(<<b0, b1, b2, b3, b4, b5, b6, b7, rest::binary>>) do
-    <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1, threshold(b4)::1,
-      threshold(b5)::1, threshold(b6)::1, threshold(b7)::1, pack_bits(rest)::binary>>
+    EInk.draw(state.eink, eink_data, opts)
+
+    {:reply, :ok, state}
   end
 
-  defp threshold(b) when b >= 100, do: 1
-  defp threshold(b) when b < 100, do: 0
+  defp eval_template(template) do
+    typst_opts = [root_dir: typst_dir(), extra_fonts: [fonts_dir()]]
+
+    Typst.render_to_png!(template, [], typst_opts)
+    |> List.first()
+  end
+
+  defp prepare_png(png) do
+    png
+    |> Dither.decode!()
+    |> Dither.grayscale!()
+    |> Dither.to_raw!()
+    |> IO.inspect(label: "PRE-PACK BITS")
+    |> pack_bits()
+    |> Enum.join()
+  end
+
+  defp pack_bits(""), do: []
+
+  defp pack_bits(<<b0, b1, b2, b3, b4, b5, b6, b7, rest::binary>>) do
+    [
+      <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1, threshold(b4)::1,
+        threshold(b5)::1, threshold(b6)::1, threshold(b7)::1>>
+      | pack_bits(rest)
+    ]
+  end
+
+  defp threshold(b) when b >= @threshold, do: 1
+  defp threshold(b) when b < @threshold, do: 0
+
+  defp typst_dir, do: Application.app_dir(:name_badge, "priv/typst")
+  defp fonts_dir, do: Path.join(typst_dir(), "fonts")
 end

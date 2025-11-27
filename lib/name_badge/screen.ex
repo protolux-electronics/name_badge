@@ -1,16 +1,32 @@
 defmodule NameBadge.Screen do
   use GenServer
 
+  require Logger
+
+  alias NameBadge.ButtonMonitor
+  alias NameBadge.Display
+  alias NameBadge.Layout
+  alias NameBadge.ScreenManager
+
   @type t :: %__MODULE__{module: atom(), assigns: map(), action: nil | tuple(), mount_args: any()}
 
-  defstruct [:module, assigns: %{}, action: nil, mount_args: nil]
+  defstruct [
+    :module,
+    assigns: %{},
+    first_render?: true,
+    action: nil,
+    mount_args: nil,
+    last_render: %{assigns: %{}, hash: nil}
+  ]
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
 
-  def render(pid, timeout \\ 1000) do
-    GenServer.call(pid, :render, timeout)
+  def shutdown(pid) do
+    GenServer.stop(pid)
+  catch
+    :exit, {:noproc, _} -> :ok
   end
 
   def assign(screen, key, value) do
@@ -22,8 +38,12 @@ defmodule NameBadge.Screen do
     %{screen | assigns: Map.merge(screen.assigns, new_assigns)}
   end
 
-  def handle_button(pid, which_button, press_type, timeout \\ 1000) do
-    GenServer.call(pid, {:handle_button, which_button, press_type}, timeout)
+  def navigate(screen, :back) do
+    %{screen | action: {:navigate, :back}}
+  end
+
+  def navigate(screen, module) do
+    %{screen | action: {:navigate, module}}
   end
 
   @impl true
@@ -37,26 +57,98 @@ defmodule NameBadge.Screen do
   @impl GenServer
   def handle_continue(:mount, screen) do
     {:ok, screen} = screen.module.mount(screen.mount_args, screen)
-    {:noreply, screen}
+
+    process_screen(screen)
+  end
+
+  def handle_continue({:render, render_opts}, screen) do
+    # To prevent "double clicking", we don't handle button presses during rendering of the frame
+    subscribe_to_buttons(false)
+
+    # this is blocking, takes about 1s
+    screen.module.render(screen.assigns)
+    |> Layout.app_layout()
+    |> Display.render_typst(render_opts)
+
+    # Re-enable listening for button presses
+    subscribe_to_buttons(true)
+
+    {:noreply, %{screen | last_render: screen.assigns, first_render?: false}}
   end
 
   @impl GenServer
-  def handle_call(:render, _from, screen) do
-    markup = screen.module.render(screen.assigns)
-    {:reply, markup, screen}
+  def handle_info({:button_event, which_button, press_type}, screen) do
+    subscribe_to_buttons(false)
+    {:noreply, screen} = screen.module.handle_button(which_button, press_type, screen)
+    subscribe_to_buttons(true)
+
+    process_screen(screen)
   end
 
-  def handle_call({:handle_button, button, press}, _from, screen) do
-    screen = screen.module.handle_button(button, press, screen)
-    {:reply, :ok, screen}
+  def handle_info(message, screen) do
+    subscribe_to_buttons(false)
+    {:noreply, screen} = screen.module.handle_info(message, screen)
+    subscribe_to_buttons(true)
+
+    process_screen(screen)
   end
+
+  defp subscribe_to_buttons(true) do
+    ButtonMonitor.subscribe(:button_1)
+    ButtonMonitor.subscribe(:button_2)
+  end
+
+  defp subscribe_to_buttons(false) do
+    ButtonMonitor.unsubscribe(:button_1)
+    ButtonMonitor.unsubscribe(:button_2)
+  end
+
+  defp process_screen(screen) do
+    subscribe_to_buttons(false)
+
+    return =
+      screen
+      # check if navigate
+      |> maybe_navigate()
+      # check if should render
+      |> maybe_render()
+
+    subscribe_to_buttons(true)
+    return
+  end
+
+  defp maybe_navigate(%__MODULE__{action: action} = screen) when not is_nil(action) do
+    case action do
+      {:navigate, :back} ->
+        ScreenManager.navigate(:back)
+
+      {:navigate, module} ->
+        ScreenManager.navigate(module)
+    end
+
+    {:stop, :normal, screen}
+  end
+
+  # if action is nil, do nothing
+  defp maybe_navigate(screen), do: screen
+
+  defp maybe_render(%__MODULE__{} = screen) do
+    cond do
+      screen.first_render? -> {:noreply, screen, {:continue, {:render, []}}}
+      Map.equal?(screen.last_render.assigns, screen.assigns) -> {:noreply, screen}
+      true -> {:noreply, screen, {:continue, {:render, [refresh_type: :partial]}}}
+    end
+  end
+
+  # if we navigate, then the return will be a tuple. Just pass it on
+  defp maybe_render(return), do: return
 
   ###################### CALLBACK ######################
 
   defmacro __using__(_opts) do
     quote do
       @behaviour NameBadge.Screen
-      import NameBadge.Screen, only: [assign: 2, assign: 3]
+      import NameBadge.Screen, only: [assign: 2, assign: 3, navigate: 2]
 
       # default mount
       def mount(args, screen), do: {:ok, screen}
@@ -64,19 +156,38 @@ defmodule NameBadge.Screen do
       # default render
       def render(assigns) do
         """
-        #place(center + horizon, text(size: 64pt)[#{inspect(__MODULE__)}])
+        #place(center + horizon, text(size: 64pt)[Hello from #{inspect(__MODULE__)}])
         """
       end
 
       # default handle_button
-      # NOTE: handle_button doesn't return {:noreply, screen} like LiveView!
-      def handle_button(_button, _press, screen), do: screen
+      def handle_button(_button, _press, screen), do: {:noreply, screen}
+
+      # default handle info just prints an error message
+      def handle_info(message, screen) do
+        require Logger
+
+        Logger.error("""
+          #{__MODULE__} received unhandled message:
+
+          #{inspect(message)}
+           
+          Implement `handle_info/2` to process messages in your screen module
+        """)
+
+        {:noreply, screen}
+      end
 
       defoverridable NameBadge.Screen
     end
   end
 
-  @callback mount(keyword(), t()) :: {:ok, t()}
-  @callback render(map()) :: String.t()
-  @callback handle_button(atom(), :single_press | :long_press, t()) :: t()
+  @callback mount(args :: keyword(), screen :: t()) :: {:ok, t()}
+  @callback render(assigns :: map()) :: String.t()
+  @callback handle_button(
+              which_button :: atom(),
+              press_type :: :single_press | :long_press,
+              screen :: t()
+            ) :: t()
+  @callback handle_info(message :: any(), screen :: t()) :: {:noreply, t()}
 end

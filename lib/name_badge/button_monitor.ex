@@ -3,8 +3,6 @@ defmodule NameBadge.ButtonMonitor do
 
   alias Circuits.GPIO
 
-  require Logger
-
   @long_press_timeout_default 300
   @genserver_args [:name, :timeout, :debug, :spawn_opt, :hibernate_after]
   @button_gpios [
@@ -17,8 +15,10 @@ defmodule NameBadge.ButtonMonitor do
     GenServer.start_link(__MODULE__, args, genserver_args)
   end
 
-  def subscribe_to_button(button_name),
+  def subscribe(button_name),
     do: Registry.register(NameBadge.Registry, button_name, nil)
+
+  def unsubscribe(button_name), do: Registry.unregister(NameBadge.Registry, button_name)
 
   @impl GenServer
   def init(opts) do
@@ -59,13 +59,11 @@ defmodule NameBadge.ButtonMonitor do
     case NaiveDateTime.diff(now, state.pressed_at, :millisecond) do
       diff_duration when diff_duration < state.long_press_timeout ->
         Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
-          Logger.info("DISPATCH SINGLE PRESS EVENT TO #{inspect(pids)}")
           for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :single_press})
         end)
 
       _ ->
         Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
-          Logger.info("DISPATCH LONG PRESS EVENT TO #{inspect(pids)}")
           for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :long_press})
         end)
     end
