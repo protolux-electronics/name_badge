@@ -41,8 +41,6 @@ defmodule NameBadge.ButtonMonitor do
 
   @impl GenServer
   def handle_info({:circuits_gpio, _btn, _ts, 0}, state) do
-    Logger.info("button down")
-
     now = NaiveDateTime.utc_now()
     {:noreply, %{state | pressed_at: now}}
   end
@@ -56,21 +54,18 @@ defmodule NameBadge.ButtonMonitor do
 
   @impl GenServer
   def handle_info({:circuits_gpio, _btn, _ts, 1}, state) do
-    Logger.info("button up")
     now = NaiveDateTime.utc_now()
 
     case NaiveDateTime.diff(now, state.pressed_at, :millisecond) do
       diff_duration when diff_duration < state.long_press_timeout ->
-        Logger.info("short press")
-
         Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
+          Logger.info("DISPATCH SINGLE PRESS EVENT TO #{inspect(pids)}")
           for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :single_press})
         end)
 
       _ ->
-        Logger.info("Long_press")
-
         Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
+          Logger.info("DISPATCH LONG PRESS EVENT TO #{inspect(pids)}")
           for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :long_press})
         end)
     end

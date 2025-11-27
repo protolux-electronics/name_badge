@@ -39,9 +39,10 @@ defmodule NameBadge.Application do
         {Registry, name: NameBadge.Registry, keys: :duplicate},
         button_spec(:button_1),
         button_spec(:button_2),
-        NameBadge.Display,
+        NameBadge.Battery,
         NameBadge.Socket,
-        NameBadge.Battery
+        NameBadge.Display,
+        NameBadge.ScreenManager
       ]
     end
   end
