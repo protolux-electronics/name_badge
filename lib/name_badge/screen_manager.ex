@@ -29,7 +29,6 @@ defmodule NameBadge.ScreenManager do
   @impl GenServer
   def handle_cast({:navigate, module}, state) do
     Screen.shutdown(state.current_screen)
-
     {:ok, pid} = Screen.start_link(module: module)
 
     new_stack = [module | state.stack]
@@ -42,9 +41,8 @@ defmodule NameBadge.ScreenManager do
       [] ->
         {:noreply, state}
 
-      [previous_screen | new_stack] ->
+      [previous_screen | _rest] = new_stack ->
         Screen.shutdown(state.current_screen)
-
         {:ok, pid} = Screen.start_link(module: previous_screen)
 
         {:noreply, %{state | stack: new_stack, current_screen: pid}}

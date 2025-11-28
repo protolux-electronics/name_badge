@@ -78,17 +78,15 @@ defmodule NameBadge.Screen do
 
   @impl GenServer
   def handle_info({:button_event, which_button, press_type}, screen) do
-    subscribe_to_buttons(false)
     {:noreply, screen} = screen.module.handle_button(which_button, press_type, screen)
-    subscribe_to_buttons(true)
+
+    flush_button_events(which_button, press_type)
 
     process_screen(screen)
   end
 
   def handle_info(message, screen) do
-    subscribe_to_buttons(false)
     {:noreply, screen} = screen.module.handle_info(message, screen)
-    subscribe_to_buttons(true)
 
     process_screen(screen)
   end
@@ -104,17 +102,21 @@ defmodule NameBadge.Screen do
   end
 
   defp process_screen(screen) do
-    subscribe_to_buttons(false)
+    screen
+    |> maybe_navigate()
+    |> maybe_render()
+  end
 
-    return =
-      screen
-      # check if navigate
-      |> maybe_navigate()
-      # check if should render
-      |> maybe_render()
-
-    subscribe_to_buttons(true)
-    return
+  defp flush_button_events(which_button, press_type) do
+    # this will discard any matching events in the process mailbox.
+    # If there are no matching messages in the mailbox, it returns immediately
+    receive do
+      {:button_event, ^which_button, ^press_type} ->
+        flush_button_events(which_button, press_type)
+    after
+      0 ->
+        :ok
+    end
   end
 
   defp maybe_navigate(%__MODULE__{action: action} = screen) when not is_nil(action) do
@@ -156,7 +158,7 @@ defmodule NameBadge.Screen do
       # default render
       def render(assigns) do
         """
-        #place(center + horizon, text(size: 64pt)[Hello from #{inspect(__MODULE__)}])
+        #place(center + horizon, text(size: 32pt, font: "New Amsterdam")[Hello from #{inspect(__MODULE__)}])
         """
       end
 
