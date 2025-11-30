@@ -11,7 +11,7 @@ defmodule NameBadge.Screen.Settings do
 
   def render(%{show_stats: true}) do
     current_ap = Network.current_ap()
-    wlan_ip = Network.current_ap()
+    wlan_ip = Network.wlan_ip()
     usb_ip = Network.usb_ip()
 
     firmware = fn

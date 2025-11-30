@@ -37,7 +37,7 @@ defmodule NameBadge.Network do
       "MOCKED"
     end
   else
-    def current_ap() do
+    def wlan_ip() do
       case VintageNet.get(["interface", "wlan0", "addresses"]) do
         addrs when is_list(addrs) ->
           case Enum.find(addrs, &(&1.family == :inet)) do
