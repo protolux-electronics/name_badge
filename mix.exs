@@ -31,6 +31,8 @@ defmodule NameBadge.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:phoenix_playground, "~> 0.1.8", targets: [:host]},
+      {:ex_png, "~> 1.0.0", targets: [:host]},
       # Dependencies for all targets
       {:nerves, "~> 1.10", runtime: false},
       {:shoehorn, "~> 0.9.1"},

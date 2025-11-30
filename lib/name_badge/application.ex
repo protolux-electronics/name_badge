@@ -31,6 +31,12 @@ defmodule NameBadge.Application do
         #
         # Starts a worker by calling: Host.Worker.start_link(arg)
         # {Host.Worker, arg},
+        {Phoenix.PubSub, name: NameBadge.PubSub},
+        NameBadge.Display,
+        NameBadge.Socket,
+        NameBadge.Battery,
+        {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"},
+        {PhoenixPlayground, live: NameBadge.PreviewLive}
       ]
     end
   else

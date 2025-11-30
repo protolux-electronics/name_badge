@@ -27,4 +27,24 @@ defmodule NameBadge.Wifi do
   def pull_down(state) do
     :ok = Circuits.GPIO.write_one(state.gpio, 0)
   end
+
+  if Mix.target() == :host do
+    def subscribe(_wlan_property) do
+      :noop
+    end
+  else
+    def subscribe(wlan_property) do
+      VintageNet.subscribe(wlan_property)
+    end
+  end
+
+  if Mix.target() == :host do
+    def connected?(_wlan_property) do
+      :noop
+    end
+  else
+    def connected?(wlan_property) do
+      VintageNet.get(wlan_property) == :internet
+    end
+  end
 end

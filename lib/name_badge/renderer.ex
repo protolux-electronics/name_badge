@@ -6,10 +6,16 @@ defmodule NameBadge.Renderer do
   alias NameBadge.Screen
   alias NameBadge.Socket
   alias Circuits.GPIO
+  alias NameBadge.Wifi
+  alias NameBadge.Network
 
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
   @wlan0_property ["interface", "wlan0", "connection"]
+
+  def live_button_pressed(which_button) do
+    GenServer.cast(__MODULE__, {:live_button_pressed, which_button})
+  end
 
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -17,13 +23,8 @@ defmodule NameBadge.Renderer do
 
   @impl GenServer
   def init(_opts) do
-    {:ok, btn_1} = GPIO.open(@btn_1, :input)
-    {:ok, btn_2} = GPIO.open(@btn_2, :input)
-
-    :ok = GPIO.set_interrupts(btn_1, :both)
-    :ok = GPIO.set_interrupts(btn_2, :both)
-
-    VintageNet.subscribe(@wlan0_property)
+    {btn_1, btn_2} = setup_buttons()
+    Network.subscribe(@wlan0_property)
 
     screen = %Screen{module: Screen.TopLevel}
     {:ok, screen} = Screen.TopLevel.init([], screen)
@@ -71,6 +72,13 @@ defmodule NameBadge.Renderer do
     |> handle_screen_result(state)
   end
 
+  def handle_cast({:live_button_pressed, which_button}, state) do
+    Logger.info("live button pressed: #{which_button}")
+
+    state.current_screen.module.handle_button(which_button, 0, state.current_screen)
+    |> handle_screen_result(state)
+  end
+
   def handle_info({:assign, key, value}, state) do
     state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
     schedule_render()
@@ -113,8 +121,7 @@ defmodule NameBadge.Renderer do
         true -> "battery-0.png"
       end
 
-    connected? = VintageNet.get(@wlan0_property) == :internet
-    wifi_icon = if connected?, do: "wifi.png", else: "wifi-slash.png"
+    wifi_icon = if Network.connected?(@wlan0_property), do: "wifi.png", else: "wifi-slash.png"
     link_icon = if Socket.connected?(), do: "link.png", else: "link-slash.png"
 
     markup =
@@ -217,6 +224,22 @@ defmodule NameBadge.Renderer do
 
       {:norender, screen} ->
         {:noreply, put_in(state.current_screen, screen)}
+    end
+  end
+
+  if Mix.target() == :host do
+    defp setup_buttons() do
+      {nil, nil}
+    end
+  else
+    defp setup_buttons() do
+      {:ok, btn_1} = GPIO.open(@btn_1, :input)
+      {:ok, btn_2} = GPIO.open(@btn_2, :input)
+
+      :ok = GPIO.set_interrupts(btn_1, :both)
+      :ok = GPIO.set_interrupts(btn_2, :both)
+
+      {btn_1, btn_2}
     end
   end
 end
