@@ -40,7 +40,7 @@ defmodule NameBadge.Wifi do
 
   if Mix.target() == :host do
     def connected?(_wlan_property) do
-      :noop
+      true
     end
   else
     def connected?(wlan_property) do
