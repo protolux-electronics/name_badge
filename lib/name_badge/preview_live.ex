@@ -46,10 +46,15 @@ if Mix.target() == :host do
           background: white;
           cursor: pointer;
           font-weight: 700;
+          transition: all 0.1s ease;
         }
         .btn:hover {
           background: #f9f9f9;
           border-color: #999;
+        }
+        .btn:active {
+          transform: scale(0.95);
+          background: #e0e0e0;
         }
       </style>
       """
