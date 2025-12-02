@@ -69,23 +69,16 @@ if Mix.target() == :host do
       {:noreply, socket}
     end
 
-    defp frame_to_data_url(packed_binary) do
-      bitmap =
-        packed_binary
+    defp frame_to_data_url(frame) do
+      encoded_png =
+        frame
         |> unpack_bits()
-        |> :binary.bin_to_list()
+        |> :erlang.binary_to_list()
+        |> Dither.NIF.from_raw(400, 300)
+        |> then(fn {:ok, ref} -> Dither.encode!(ref) end)
+        |> Base.encode64()
 
-      png_binary =
-        Pngex.new(
-          type: :gray,
-          depth: :depth8,
-          width: 400,
-          height: 300
-        )
-        |> Pngex.generate(bitmap)
-        |> IO.iodata_to_binary()
-
-      "data:image/png;base64," <> Base.encode64(png_binary)
+      "data:image/png;base64," <> encoded_png
     end
 
     defp unpack_bits(packed_binary) do
