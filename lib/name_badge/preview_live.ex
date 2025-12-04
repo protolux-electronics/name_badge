@@ -4,7 +4,7 @@ if Mix.target() == :host do
 
     def mount(_params, _session, socket) do
       Phoenix.PubSub.subscribe(NameBadge.PubSub, "display:frame")
-      {:ok, assign(socket, current_frame: frame_to_data_url(NameBadge.Display.get_current_frame()))}
+      {:ok, assign(socket, current_frame: frame_to_data_url(NameBadge.DisplayMock.get_current_frame()))}
     end
 
     def render(assigns) do
@@ -65,12 +65,12 @@ if Mix.target() == :host do
     end
 
     def handle_event("button_a", _params, socket) do
-      NameBadge.Renderer.live_button_pressed("BTN_1")
+      NameBadge.RendererMock.live_button_pressed("BTN_1")
       {:noreply, socket}
     end
 
     def handle_event("button_b", _params, socket) do
-      NameBadge.Renderer.live_button_pressed("BTN_2")
+      NameBadge.RendererMock.live_button_pressed("BTN_2")
       {:noreply, socket}
     end
 

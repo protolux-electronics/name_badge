@@ -136,7 +136,7 @@ defmodule NameBadge.Screen.Settings do
 
           for frame <- frames, do: Display.draw(frame, refresh_type: :partial)
 
-          send(NameBadge.Renderer, {:assign, :sudo_mode, false})
+          NameBadge.Renderer.assign(:sudo_mode, false)
         end)
 
         {:norender, assign(screen, :sudo_mode, true)}

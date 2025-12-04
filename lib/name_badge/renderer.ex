@@ -6,15 +6,19 @@ defmodule NameBadge.Renderer do
   alias NameBadge.Screen
   alias NameBadge.Socket
   alias Circuits.GPIO
-  alias NameBadge.Wifi
   alias NameBadge.Network
 
+  @renderer_impl Application.compile_env(:name_badge, :renderer_impl)
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
   @wlan0_property ["interface", "wlan0", "connection"]
 
-  def live_button_pressed(which_button) do
-    GenServer.cast(__MODULE__, {:live_button_pressed, which_button})
+  def assign(key, value) do
+    GenServer.cast(@renderer_impl, {:assign, key, value})
+  end
+
+  def survey_question(question) do
+    GenServer.cast(@renderer_impl, {:survey_question, question})
   end
 
   def start_link(args \\ []) do
@@ -23,8 +27,13 @@ defmodule NameBadge.Renderer do
 
   @impl GenServer
   def init(_opts) do
-    {btn_1, btn_2} = setup_buttons()
-    Network.subscribe(@wlan0_property)
+    {:ok, btn_1} = GPIO.open(@btn_1, :input)
+    {:ok, btn_2} = GPIO.open(@btn_2, :input)
+
+    :ok = GPIO.set_interrupts(btn_1, :both)
+    :ok = GPIO.set_interrupts(btn_2, :both)
+
+    VintageNet.subscribe(@wlan0_property)
 
     screen = %Screen{module: Screen.TopLevel}
     {:ok, screen} = Screen.TopLevel.init([], screen)
@@ -72,28 +81,7 @@ defmodule NameBadge.Renderer do
     |> handle_screen_result(state)
   end
 
-  def handle_cast({:live_button_pressed, which_button}, state) do
-    Logger.info("live button pressed: #{which_button}")
-
-    state.current_screen.module.handle_button(which_button, 0, state.current_screen)
-    |> handle_screen_result(state)
-  end
-
-  def handle_info({:assign, key, value}, state) do
-    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-    schedule_render()
-    {:noreply, state}
-  end
-
   def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
-    schedule_render(:partial)
-    {:noreply, state}
-  end
-
-  def handle_info({:survey_question, question}, state) do
-    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
-    state = %{state | current_screen: screen}
-
     schedule_render(:partial)
     {:noreply, state}
   end
@@ -106,6 +94,21 @@ defmodule NameBadge.Renderer do
       Logger.info("No handler for handle_info: #{inspect(message)}")
       {:noreply, state}
     end
+  end
+
+  @impl GenServer
+  def handle_cast({:assign, key, value}, state) do
+    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
+    schedule_render()
+    {:noreply, state}
+  end
+
+  def handle_cast({:survey_question, question}, state) do
+    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
+    state = %{state | current_screen: screen}
+
+    schedule_render(:partial)
+    {:noreply, state}
   end
 
   defp render_screen(screen, render_type) do
@@ -224,22 +227,6 @@ defmodule NameBadge.Renderer do
 
       {:norender, screen} ->
         {:noreply, put_in(state.current_screen, screen)}
-    end
-  end
-
-  if Mix.target() == :host do
-    defp setup_buttons() do
-      {nil, nil}
-    end
-  else
-    defp setup_buttons() do
-      {:ok, btn_1} = GPIO.open(@btn_1, :input)
-      {:ok, btn_2} = GPIO.open(@btn_2, :input)
-
-      :ok = GPIO.set_interrupts(btn_1, :both)
-      :ok = GPIO.set_interrupts(btn_2, :both)
-
-      {btn_1, btn_2}
     end
   end
 end
