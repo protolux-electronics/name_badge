@@ -3,14 +3,12 @@ defmodule NameBadge.Display do
 
   require Logger
 
-  @display_impl Application.compile_env(:name_badge, :display_impl)
-
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def draw(image, opts \\ []) do
-    GenServer.call(@display_impl, {:draw, image, opts})
+    GenServer.call(__MODULE__, {:draw, image, opts})
   end
 
   def init(_opts) do

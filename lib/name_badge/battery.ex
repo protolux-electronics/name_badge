@@ -1,11 +1,9 @@
 defmodule NameBadge.Battery do
   use GenServer
 
-  @battery_impl Application.compile_env(:name_badge, :battery_impl)
-
   def start_link(args), do: GenServer.start_link(__MODULE__, args, name: __MODULE__)
 
-  def voltage(), do: GenServer.call(@battery_impl, :get_voltage)
+  def voltage(), do: GenServer.call(__MODULE__, :get_voltage)
 
   def charging?() do
     # consider the device charging when input voltage is 4.5V or

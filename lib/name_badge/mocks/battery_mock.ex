@@ -3,7 +3,7 @@ defmodule NameBadge.BatteryMock do
 
   @voltage_mock 5.0
 
-  def start_link(args), do: GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(args), do: GenServer.start_link(__MODULE__, args, name: NameBadge.Battery)
 
   @impl GenServer
   def init(_opts), do: {:ok, %{}}

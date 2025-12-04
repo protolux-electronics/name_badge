@@ -8,17 +8,16 @@ defmodule NameBadge.Renderer do
   alias Circuits.GPIO
   alias NameBadge.Network
 
-  @renderer_impl Application.compile_env(:name_badge, :renderer_impl)
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
   @wlan0_property ["interface", "wlan0", "connection"]
 
   def assign(key, value) do
-    GenServer.cast(@renderer_impl, {:assign, key, value})
+    GenServer.cast(__MODULE__, {:assign, key, value})
   end
 
   def survey_question(question) do
-    GenServer.cast(@renderer_impl, {:survey_question, question})
+    GenServer.cast(__MODULE__, {:survey_question, question})
   end
 
   def start_link(args \\ []) do

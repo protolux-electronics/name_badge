@@ -31,10 +31,6 @@ config :name_badge,
        :base_url,
        System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
-config :name_badge, :battery_impl, NameBadge.Battery
-config :name_badge, :display_impl, NameBadge.Display
-config :name_badge, :renderer_impl, NameBadge.Renderer
-
 if Mix.target() == :host do
   import_config "host.exs"
 else

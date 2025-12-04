@@ -6,11 +6,11 @@ defmodule NameBadge.RendererMock do
   alias NameBadge.Screen
 
   def live_button_pressed(which_button) do
-    GenServer.cast(__MODULE__, {:live_button_pressed, which_button})
+    GenServer.cast(NameBadge.Renderer, {:live_button_pressed, which_button})
   end
 
   def start_link(args \\ []) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: NameBadge.Renderer)
   end
 
   @impl GenServer

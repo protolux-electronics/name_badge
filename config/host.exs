@@ -19,7 +19,3 @@ config :nerves_runtime,
        "a.nerves_fw_platform" => "host",
        "a.nerves_fw_version" => "0.0.0"
      }}
-
-config :name_badge, :battery_impl, NameBadge.BatteryMock
-config :name_badge, :display_impl, NameBadge.DisplayMock
-config :name_badge, :renderer_impl, NameBadge.RendererMock
