@@ -1,10 +1,12 @@
 defmodule NameBadge.DisplayMock do
   use GenServer
 
-  def start_link(args), do: GenServer.start_link(__MODULE__, args, name: NameBadge.Display)
-
   def get_current_frame() do
     GenServer.call(NameBadge.Display, :get_current_frame)
+  end
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: NameBadge.Display)
   end
 
   @impl GenServer

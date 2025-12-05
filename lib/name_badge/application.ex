@@ -35,7 +35,7 @@ defmodule NameBadge.Application do
         NameBadge.DisplayMock,
         NameBadge.Socket,
         NameBadge.BatteryMock,
-        {NameBadge.RendererMock, button_a: "BTN_1", button_b: "BTN_2"},
+        NameBadge.RendererMock,
         {PhoenixPlayground, live: NameBadge.PreviewLive}
       ]
     end

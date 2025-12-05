@@ -25,22 +25,17 @@ defmodule NameBadge.RendererMock do
   end
 
   @impl GenServer
-  def handle_info({:render, render_type}, state) do
-    NameBadge.Renderer.handle_info({:render, render_type}, state)
-  end
-
-  @impl GenServer
-  def handle_cast({:assign, key, value}, state) do
-    NameBadge.Renderer.handle_cast({:assign, key, value}, state)
-  end
-
-  @impl GenServer
-  def handle_cast({:survey_question, question}, state) do
-    NameBadge.Renderer.handle_cast({:survey_question, question}, state)
+  def handle_info(info, state) do
+    NameBadge.Renderer.handle_info(info, state)
   end
 
   @impl GenServer
   def handle_cast({:live_button_pressed, which_button}, state) do
     NameBadge.Renderer.handle_info({:circuits_gpio, which_button, nil, 0}, state)
+  end
+
+  @impl GenServer
+  def handle_cast(message, state) do
+    NameBadge.Renderer.handle_cast(message, state)
   end
 end

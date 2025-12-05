@@ -52,8 +52,8 @@ defmodule NameBadge.Display do
 
   def pack_bits(binary) do
     for <<b0, b1, b2, b3, b4, b5, b6, b7 <- binary>>, into: <<>> do
-      << threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1,
-        threshold(b4)::1, threshold(b5)::1, threshold(b6)::1, threshold(b7)::1 >>
+      <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1,
+        threshold(b4)::1, threshold(b5)::1, threshold(b6)::1, threshold(b7)::1>>
     end
   end
 
