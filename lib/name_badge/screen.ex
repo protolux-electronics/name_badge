@@ -158,7 +158,7 @@ defmodule NameBadge.Screen do
     cond do
       screen.first_render? -> {:noreply, screen, {:continue, {:render, []}}}
       Map.equal?(screen.last_render, screen.assigns) -> {:noreply, screen}
-      true -> {:noreply, screen, {:continue, {:render, []}}}
+      true -> {:noreply, screen, {:continue, {:render, [refresh_type: :partial]}}}
     end
   end
 

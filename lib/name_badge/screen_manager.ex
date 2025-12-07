@@ -3,7 +3,6 @@ defmodule NameBadge.ScreenManager do
 
   require Logger
 
-  alias NameBadge.Screen.Settings
   alias NameBadge.Screen
 
   def start_link(args \\ []) do

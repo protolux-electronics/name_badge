@@ -4,6 +4,14 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   require Logger
 
   @impl NameBadge.Screen
+  def render(%{welcome_screen: true}) do
+    """
+    #align(center + horizon)[
+      Welcome! To get started, power on the device with the switch to the left      
+    ]
+    """
+  end
+
   def render(%{step: 1}) do
     """
     #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
@@ -37,7 +45,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
 
     = Tutorial
 
-    You can exit any screen by long-pressing the B button.
+    You can exit ANY screen by long-pressing the B button.
     A long press is registered after 500ms.
 
     To #{if assigns.tutorial_enabled, do: "disable", else: "enable"} the tutorial after boot, press the A button.
@@ -69,7 +77,9 @@ defmodule NameBadge.Screen.Settings.Tutorial do
     {:noreply, screen}
   end
 
-  def handle_button(:button_1, :long_press, screen), do: {:noreply, screen}
+  def handle_button(:button_1, :long_press, screen) do
+    {:noreply, assign(screen, welcome_screen: true)}
+  end
 
   def handle_button(:button_1, :single_press, screen) do
     new_step = min(screen.assigns.step + 1, 3)

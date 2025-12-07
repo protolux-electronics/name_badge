@@ -44,6 +44,4 @@ defmodule NameBadge.Screen.Gallery do
 
     {:noreply, screen}
   end
-
-  defp base_url(), do: Application.get_env(:name_badge, :base_url)
 end

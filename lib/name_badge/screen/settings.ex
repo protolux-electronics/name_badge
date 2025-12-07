@@ -6,7 +6,6 @@ defmodule NameBadge.Screen.Settings do
   @settings [
     {"Personalization", Settings.QrCode},
     {"WiFi Settings", Settings.WiFi},
-    {"System Info", Settings.SystemInfo},
     {"Tutorial", Settings.Tutorial},
     {"Sudo Mode", Settings.SudoMode}
   ]
