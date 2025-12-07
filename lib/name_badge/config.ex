@@ -6,7 +6,7 @@ defmodule NameBadge.Config do
     |> File.read()
     |> case do
       {:ok, config_json} -> :json.decode(config_json)
-      {:error, _reason} -> nil
+      {:error, _reason} -> %{}
     end
   end
 

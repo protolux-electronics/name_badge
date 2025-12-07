@@ -9,7 +9,7 @@ defmodule NameBadge.Display do
   #place(center + horizon, image("images/logos.svg", width: 196pt))
   """
 
-  @threshold 100
+  @threshold 127
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -70,12 +70,15 @@ defmodule NameBadge.Display do
     |> List.first()
   end
 
-  defp prepare_png(png) do
-    png
-    |> Dither.decode!()
+  defp prepare_png(png) when is_binary(png) do
+    Dither.decode!(png)
+    |> prepare_png()
+  end
+
+  defp prepare_png(ref) when is_reference(ref) do
+    ref
     |> Dither.grayscale!()
     |> Dither.to_raw!()
-    |> IO.inspect(label: "PRE-PACK BITS")
     |> pack_bits()
     |> Enum.join()
   end

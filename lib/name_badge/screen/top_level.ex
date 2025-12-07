@@ -4,10 +4,9 @@ defmodule NameBadge.Screen.TopLevel do
   alias NameBadge.Screen
 
   @screens [
-    {Screen.NameBadge, "Name Badge 1"},
-    {Screen.NameBadge, "Name Badge 2"},
-    {Screen.NameBadge, "Name Badge 3"},
-    {Screen.NameBadge, "Name Badge 4"}
+    {Screen.NameBadge, "Name Badge"},
+    {Screen.Gallery, "Gallery"},
+    {Screen.Settings, "Device Settings"}
   ]
 
   @impl NameBadge.Screen
@@ -21,7 +20,10 @@ defmodule NameBadge.Screen.TopLevel do
 
   @impl NameBadge.Screen
   def mount(_args, screen) do
-    screen = assign(screen, screens: @screens, current_index: 0)
+    screen =
+      screen
+      |> assign(screens: @screens, current_index: 0)
+      |> assign(button_hints: %{a: "Next", b: "Select"})
 
     {:ok, screen}
   end

@@ -13,9 +13,6 @@ defmodule NameBadge.Socket do
 
   def connected?(), do: GenServer.call(__MODULE__, :connected?)
 
-  def survey_response(token, response),
-    do: GenServer.call(__MODULE__, {:survey_response, token, response})
-
   def start_link(args) do
     Slipstream.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -33,10 +30,7 @@ defmodule NameBadge.Socket do
 
   @impl Slipstream
   def handle_message("device_gallery", "image", %{"url" => url}, socket) do
-    {:ok, %{body: image}} = Req.get(url)
-
-    raise "TODO"
-
+    NameBadge.Gallery.push_gallery_image(url)
     {:ok, socket}
   end
 
@@ -45,14 +39,6 @@ defmodule NameBadge.Socket do
     Logger.info("Received new configuration! #{inspect(config)}")
 
     NameBadge.Config.store_config(config)
-
-    {:ok, socket}
-  end
-
-  @impl Slipstream
-  def handle_message("survey", "question", question, socket) do
-    Logger.info("Received new survey! #{inspect(question)}")
-    send(NameBadge.Renderer, {:survey_question, question})
 
     {:ok, socket}
   end
@@ -75,12 +61,6 @@ defmodule NameBadge.Socket do
   @impl Slipstream
   def handle_call({:leave_config, token}, _from, socket) do
     {:reply, :ok, leave(socket, "config:" <> token)}
-  end
-
-  @impl Slipstream
-  def handle_call({:survey_response, token, response}, _from, socket) do
-    push!(socket, "survey", "response", %{token: token, response: response})
-    {:reply, :ok, socket}
   end
 
   @impl Slipstream

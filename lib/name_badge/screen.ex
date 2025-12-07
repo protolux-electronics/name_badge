@@ -67,8 +67,20 @@ defmodule NameBadge.Screen do
 
     # this is blocking, takes about 1s
     screen.module.render(screen.assigns)
-    |> Layout.app_layout()
-    |> Display.render_typst(render_opts)
+    |> case do
+      # check if it is a png header
+      <<137, 80, 78, 71, 13, 10, 26, 10, _rest::binary>> = png ->
+        Display.render_png(png, render_opts)
+
+      # check if this is a dither reference
+      ref when is_reference(ref) ->
+        Display.render_png(ref, render_opts)
+
+      template when is_binary(template) ->
+        template
+        |> Layout.app_layout(button_hints: Map.get(screen.assigns, :button_hints, %{}))
+        |> Display.render_typst(render_opts)
+    end
 
     # Re-enable listening for button presses
     subscribe_to_buttons(true)
@@ -78,7 +90,15 @@ defmodule NameBadge.Screen do
 
   @impl GenServer
   def handle_info({:button_event, which_button, press_type}, screen) do
-    {:noreply, screen} = screen.module.handle_button(which_button, press_type, screen)
+    screen =
+      case {which_button, press_type} do
+        {:button_2, :long_press} ->
+          navigate(screen, :back)
+
+        _ ->
+          {:noreply, screen} = screen.module.handle_button(which_button, press_type, screen)
+          screen
+      end
 
     flush_button_events(which_button, press_type)
 
@@ -128,7 +148,7 @@ defmodule NameBadge.Screen do
         ScreenManager.navigate(module)
     end
 
-    {:stop, :normal, screen}
+    {:noreply, screen}
   end
 
   # if action is nil, do nothing
@@ -138,7 +158,7 @@ defmodule NameBadge.Screen do
     cond do
       screen.first_render? -> {:noreply, screen, {:continue, {:render, []}}}
       Map.equal?(screen.last_render, screen.assigns) -> {:noreply, screen}
-      true -> {:noreply, screen, {:continue, {:render, [refresh_type: :partial]}}}
+      true -> {:noreply, screen, {:continue, {:render, []}}}
     end
   end
 

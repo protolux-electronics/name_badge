@@ -5,6 +5,8 @@ defmodule NameBadge.Application do
 
   use Application
 
+  @target Mix.target()
+
   @impl true
   def start(_type, _args) do
     setup_wifi()
@@ -14,7 +16,7 @@ defmodule NameBadge.Application do
         # Children for all targets
         # Starts a worker by calling: NameBadge.Worker.start_link(arg)
         # {NameBadge.Worker, arg},
-      ] ++ target_children()
+      ] ++ target_children(@target)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -23,28 +25,26 @@ defmodule NameBadge.Application do
   end
 
   # List all child processes to be supervised
-  if Mix.target() == :host do
-    defp target_children() do
-      [
-        # Children that only run on the host during development or test.
-        # In general, prefer using `config/host.exs` for differences.
-        #
-        # Starts a worker by calling: Host.Worker.start_link(arg)
-        # {Host.Worker, arg},
-      ]
-    end
-  else
-    defp target_children() do
-      [
-        {Registry, name: NameBadge.Registry, keys: :duplicate},
-        button_spec(:button_1),
-        button_spec(:button_2),
-        NameBadge.Battery,
-        NameBadge.Socket,
-        NameBadge.Display,
-        NameBadge.ScreenManager
-      ]
-    end
+  defp target_children(:host) do
+    [
+      # Children that only run on the host during development or test.
+      # In general, prefer using `config/host.exs` for differences.
+      #
+      # Starts a worker by calling: Host.Worker.start_link(arg)
+      # {Host.Worker, arg},
+    ]
+  end
+
+  defp target_children(_target) do
+    [
+      {Registry, name: NameBadge.Registry, keys: :duplicate},
+      button_spec(:button_1),
+      button_spec(:button_2),
+      NameBadge.Battery,
+      NameBadge.Socket,
+      NameBadge.Display,
+      NameBadge.ScreenManager
+    ]
   end
 
   defp button_spec(button_name, opts \\ []) do
