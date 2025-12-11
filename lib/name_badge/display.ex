@@ -5,10 +5,6 @@ defmodule NameBadge.Display do
 
   alias NameBadge.Layout
 
-  @initial_frame """
-  #place(center + horizon, image("images/logos.svg", width: 196pt))
-  """
-
   @threshold 127
 
   def start_link(opts \\ []) do
@@ -32,15 +28,7 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
-    initial_screen =
-      Layout.root_layout(@initial_frame)
-      |> eval_template()
-      |> prepare_png()
-
     EInk.clear(eink, :white)
-    EInk.draw(eink, initial_screen)
-
-    Process.sleep(:timer.seconds(3))
 
     {:ok, %{eink: eink}}
   end

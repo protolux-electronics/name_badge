@@ -44,4 +44,11 @@ defmodule NameBadge.Screen.Gallery do
 
     {:noreply, screen}
   end
+
+  @impl NameBadge.Screen
+  def terminate(_reason, screen) do
+    NameBadge.Gallery.unsubscribe_to_gallery()
+
+    screen
+  end
 end

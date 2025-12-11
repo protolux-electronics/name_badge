@@ -6,9 +6,11 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   @impl NameBadge.Screen
   def render(%{welcome_screen: true}) do
     """
-    #align(center + horizon)[
-      Welcome! To get started, power on the device with the switch to the left      
-    ]
+    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+
+    = Welcome!
+
+    To get started, power on the device with the switch to the left      
     """
   end
 
@@ -78,7 +80,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   end
 
   def handle_button(:button_1, :long_press, screen) do
-    {:noreply, assign(screen, welcome_screen: true)}
+    {:noreply, assign(screen, welcome_screen: true, button_hints: %{})}
   end
 
   def handle_button(:button_1, :single_press, screen) do

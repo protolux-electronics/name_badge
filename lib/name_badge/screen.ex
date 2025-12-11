@@ -111,6 +111,11 @@ defmodule NameBadge.Screen do
     process_screen(screen)
   end
 
+  @impl GenServer
+  def terminate(reason, screen) do
+    screen.module.terminate(reason, screen)
+  end
+
   defp subscribe_to_buttons(true) do
     ButtonMonitor.subscribe(:button_1)
     ButtonMonitor.subscribe(:button_2)
@@ -200,6 +205,10 @@ defmodule NameBadge.Screen do
         {:noreply, screen}
       end
 
+      def terminate(_reason, screen) do
+        :ok
+      end
+
       defoverridable NameBadge.Screen
     end
   end
@@ -212,4 +221,5 @@ defmodule NameBadge.Screen do
               screen :: t()
             ) :: t()
   @callback handle_info(message :: any(), screen :: t()) :: {:noreply, t()}
+  @callback terminate(reason :: any(), screen :: t()) :: any()
 end

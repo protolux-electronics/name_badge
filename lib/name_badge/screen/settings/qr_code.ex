@@ -32,6 +32,8 @@ defmodule NameBadge.Screen.Settings.QrCode do
     if connected do
       current_config = NameBadge.Config.load_config()
       NameBadge.Socket.join_config(token, current_config)
+    else
+      NervesTime.restart_ntpd()
     end
 
     screen = assign(screen, qr_code: qr_code, token: token, connected?: connected)
@@ -42,6 +44,13 @@ defmodule NameBadge.Screen.Settings.QrCode do
   @impl NameBadge.Screen
   def handle_button(_which_button, _press_type, screen) do
     {:noreply, screen}
+  end
+
+  @impl NameBadge.Screen
+  def terminate(_reason, screen) do
+    NameBadge.Socket.leave_config(screen.assigns.token)
+
+    screen
   end
 
   defp qr_code_for_token(token) do

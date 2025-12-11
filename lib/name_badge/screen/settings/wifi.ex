@@ -13,7 +13,7 @@ defmodule NameBadge.Screen.Settings.WiFi do
       2. Go to http://wifi.config
       3. Enter network credentials
       4. Apply configuration
-      5. Turn device off and on
+      5. Long-press B to connect
     ]
     """
   end
@@ -22,5 +22,11 @@ defmodule NameBadge.Screen.Settings.WiFi do
   def mount(_args, screen) do
     VintageNetWizard.run_wizard()
     {:ok, screen}
+  end
+
+  @impl NameBadge.Screen
+  def terminate(_reason, screen) do
+    VintageNetWizard.stop_wizard()
+    screen
   end
 end
