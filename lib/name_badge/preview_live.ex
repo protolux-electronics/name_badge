@@ -84,11 +84,5 @@ if Mix.target() == :host do
     defp frame_to_data_url(frame) do
       "data:image/png;base64," <> Base.encode64(frame)
     end
-
-    defp unpack_bits(packed_binary) do
-      for <<bit::1 <- packed_binary>>, into: <<>> do
-        <<if(bit == 1, do: 255, else: 0)>>
-      end
-    end
   end
 end

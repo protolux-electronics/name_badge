@@ -63,11 +63,23 @@ defmodule NameBadge.Screen.NameBadge do
 
   @impl NameBadge.Screen
   def handle_button(:button_1, :single_press, screen) do
-    {:noreply, navigate(screen, NameBadge.Screen.Settings.WiFi)}
+    cond do
+      screen.assigns.valid? ->
+        {:noreply, screen}
+
+      false ->
+        {:noreply, navigate(screen, NameBadge.Screen.Settings.WiFi)}
+    end
   end
 
   def handle_button(:button_2, :single_press, screen) do
-    {:noreply, navigate(screen, NameBadge.Screen.Settings.QrCode)}
+    cond do
+      screen.assigns.valid? ->
+        {:noreply, screen}
+
+      true ->
+        {:noreply, navigate(screen, NameBadge.Screen.Settings.QrCode)}
+    end
   end
 
   def handle_button(_, _, screen), do: {:noreply, screen}
