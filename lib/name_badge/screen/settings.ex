@@ -4,45 +4,15 @@ defmodule NameBadge.Screen.Settings do
   alias NameBadge.Display
   alias NameBadge.Battery
   alias NameBadge.Socket
+  alias NameBadge.Wifi
+  alias NameBadge.Network
 
   require Logger
 
   def render(%{show_stats: true}) do
-    current_ap =
-      case VintageNet.get(["interface", "wlan0", "wifi", "current_ap"]) do
-        %{ssid: ssid} -> ssid
-        _ -> nil
-      end
-
-    wlan_ip =
-      case VintageNet.get(["interface", "wlan0", "addresses"]) do
-        addrs when is_list(addrs) ->
-          case Enum.find(addrs, &(&1.family == :inet)) do
-            %{address: {a1, a2, a3, a4}} ->
-              "#{a1}.#{a2}.#{a3}.#{a4}"
-
-            _other ->
-              "Not connected"
-          end
-
-        _ ->
-          "Not connected"
-      end
-
-    usb_ip =
-      case VintageNet.get(["interface", "usb0", "addresses"]) do
-        addrs when is_list(addrs) ->
-          case Enum.find(addrs, &(&1.family == :inet)) do
-            %{address: {a1, a2, a3, a4}} ->
-              "#{a1}.#{a2}.#{a3}.#{a4}"
-
-            _other ->
-              "Not connected"
-          end
-
-        _ ->
-          "Not connected"
-      end
+    current_ap = Network.current_ap()
+    wlan_ip = Network.wlan_ip()
+    usb_ip = Network.usb_ip()
 
     firmware = fn
       nil ->
@@ -166,7 +136,7 @@ defmodule NameBadge.Screen.Settings do
 
           for frame <- frames, do: Display.draw(frame, refresh_type: :partial)
 
-          send(NameBadge.Renderer, {:assign, :sudo_mode, false})
+          NameBadge.Renderer.assign(:sudo_mode, false)
         end)
 
         {:norender, assign(screen, :sudo_mode, true)}

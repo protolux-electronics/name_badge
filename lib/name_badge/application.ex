@@ -5,6 +5,8 @@ defmodule NameBadge.Application do
 
   use Application
 
+  @target Mix.target()
+
   @impl true
   def start(_type, _args) do
     setup_wifi()
@@ -14,7 +16,8 @@ defmodule NameBadge.Application do
         # Children for all targets
         # Starts a worker by calling: NameBadge.Worker.start_link(arg)
         # {NameBadge.Worker, arg},
-      ] ++ target_children()
+        NameBadge.Socket
+      ] ++ target_children(@target)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -23,25 +26,22 @@ defmodule NameBadge.Application do
   end
 
   # List all child processes to be supervised
-  if Mix.target() == :host do
-    defp target_children() do
-      [
-        # Children that only run on the host during development or test.
-        # In general, prefer using `config/host.exs` for differences.
-        #
-        # Starts a worker by calling: Host.Worker.start_link(arg)
-        # {Host.Worker, arg},
-      ]
-    end
-  else
-    defp target_children() do
-      [
-        NameBadge.Display,
-        NameBadge.Socket,
-        NameBadge.Battery,
-        {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"}
-      ]
-    end
+  defp target_children(:host) do
+    [
+      {Phoenix.PubSub, name: NameBadge.PubSub},
+      NameBadge.DisplayMock,
+      NameBadge.BatteryMock,
+      NameBadge.RendererMock,
+      {PhoenixPlayground, live: NameBadge.PreviewLive}
+    ]
+  end
+
+  defp target_children(_target) do
+    [
+      NameBadge.Display,
+      NameBadge.Battery,
+      {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"}
+    ]
   end
 
   if Mix.target() == :host do

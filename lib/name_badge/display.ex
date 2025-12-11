@@ -20,20 +20,8 @@ defmodule NameBadge.Display do
         spi_device: "spidev0.0"
       )
 
-    initial_frame =
-      """
-      #set page(width: 400pt, height: 300pt)
-      #place(center + horizon, image("images/logos.svg", width: 196pt))
-      """
-      |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
-      |> List.first()
-      |> Dither.decode!()
-      |> Dither.grayscale!()
-      |> Dither.to_raw!()
-      |> pack_bits()
-
     EInk.clear(eink, :white)
-    EInk.draw(eink, initial_frame)
+    EInk.draw(eink, initial_frame())
 
     Process.sleep(5_000)
 
@@ -47,11 +35,26 @@ defmodule NameBadge.Display do
     {:reply, :ok, state}
   end
 
-  defp pack_bits(""), do: ""
+  def initial_frame() do
+    """
+    #set page(width: 400pt, height: 300pt)
+    #place(center + horizon, image("images/logos.svg", width: 196pt))
+    """
+    |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
+    |> List.first()
+    |> Dither.decode!()
+    |> Dither.grayscale!()
+    |> Dither.to_raw!()
+    |> pack_bits()
+  end
 
-  defp pack_bits(<<b0, b1, b2, b3, b4, b5, b6, b7, rest::binary>>) do
-    <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1, threshold(b4)::1,
-      threshold(b5)::1, threshold(b6)::1, threshold(b7)::1, pack_bits(rest)::binary>>
+  def pack_bits(""), do: ""
+
+  def pack_bits(binary) do
+    for <<b0, b1, b2, b3, b4, b5, b6, b7 <- binary>>, into: <<>> do
+      <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1,
+        threshold(b4)::1, threshold(b5)::1, threshold(b6)::1, threshold(b7)::1>>
+    end
   end
 
   defp threshold(b) when b >= 100, do: 1

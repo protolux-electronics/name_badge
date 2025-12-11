@@ -6,10 +6,19 @@ defmodule NameBadge.Renderer do
   alias NameBadge.Screen
   alias NameBadge.Socket
   alias Circuits.GPIO
+  alias NameBadge.Network
 
   @btn_1 "BTN_1"
   @btn_2 "BTN_2"
   @wlan0_property ["interface", "wlan0", "connection"]
+
+  def assign(key, value) do
+    GenServer.cast(__MODULE__, {:assign, key, value})
+  end
+
+  def survey_question(question) do
+    GenServer.cast(__MODULE__, {:survey_question, question})
+  end
 
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -71,21 +80,7 @@ defmodule NameBadge.Renderer do
     |> handle_screen_result(state)
   end
 
-  def handle_info({:assign, key, value}, state) do
-    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
-    schedule_render()
-    {:noreply, state}
-  end
-
   def handle_info({VintageNet, @wlan0_property, _old, :internet, _metadata}, state) do
-    schedule_render(:partial)
-    {:noreply, state}
-  end
-
-  def handle_info({:survey_question, question}, state) do
-    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
-    state = %{state | current_screen: screen}
-
     schedule_render(:partial)
     {:noreply, state}
   end
@@ -98,6 +93,21 @@ defmodule NameBadge.Renderer do
       Logger.info("No handler for handle_info: #{inspect(message)}")
       {:noreply, state}
     end
+  end
+
+  @impl GenServer
+  def handle_cast({:assign, key, value}, state) do
+    state = %{state | current_screen: Screen.assign(state.current_screen, key, value)}
+    schedule_render()
+    {:noreply, state}
+  end
+
+  def handle_cast({:survey_question, question}, state) do
+    screen = Screen.navigate(state.current_screen, NameBadge.Screen.Survey, question)
+    state = %{state | current_screen: screen}
+
+    schedule_render(:partial)
+    {:noreply, state}
   end
 
   defp render_screen(screen, render_type) do
@@ -113,8 +123,7 @@ defmodule NameBadge.Renderer do
         true -> "battery-0.png"
       end
 
-    connected? = VintageNet.get(@wlan0_property) == :internet
-    wifi_icon = if connected?, do: "wifi.png", else: "wifi-slash.png"
+    wifi_icon = if Network.connected?(@wlan0_property), do: "wifi.png", else: "wifi-slash.png"
     link_icon = if Socket.connected?(), do: "link.png", else: "link-slash.png"
 
     markup =
