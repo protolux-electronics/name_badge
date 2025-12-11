@@ -1,16 +1,22 @@
 defmodule NameBadge.Screen.Snake do
   use NameBadge.Screen
 
+  require Logger
+
   @board_size 8
   @draw_interval :timer.seconds(1)
   @reset_interval :timer.seconds(5)
 
   @zero_size @board_size - 1
 
-  def init(_args, screen) do
-    {:ok, reset_board(screen)}
+  @impl NameBadge.Screen
+  def mount(_args, screen) do
+    screen = reset_board(screen)
+
+    {:ok, screen}
   end
 
+  @impl NameBadge.Screen
   def render(assigns) do
     %{snake: snake, target: target, game_over: game_over, points: points} = assigns
 
@@ -123,7 +129,10 @@ defmodule NameBadge.Screen.Snake do
 
   defp to_pixel({x, y}), do: "(#{x}, #{y})"
 
-  def handle_button("BTN_1", 0, screen) do
+  @impl NameBadge.Screen
+  def handle_button(:button_1, :single_press, screen) do
+    Logger.debug("Snake received :button_1")
+
     new_direction =
       case moving_direction(screen.assigns.snake) do
         :right -> :up
@@ -132,11 +141,17 @@ defmodule NameBadge.Screen.Snake do
         :down -> :right
       end
 
-    screen = screen |> cancel_tick() |> update_board(new_direction)
-    {:partial, screen}
+    screen =
+      screen
+      |> cancel_tick()
+      |> update_board(new_direction)
+
+    {:noreply, screen}
   end
 
-  def handle_button("BTN_2", 0, screen) do
+  def handle_button(:button_2, :single_press, screen) do
+    Logger.debug("Snake received :button_2")
+
     new_direction =
       case moving_direction(screen.assigns.snake) do
         :right -> :down
@@ -145,20 +160,23 @@ defmodule NameBadge.Screen.Snake do
         :up -> :right
       end
 
-    screen = screen |> cancel_tick() |> update_board(new_direction)
-    {:partial, screen}
+    screen =
+      screen
+      |> cancel_tick()
+      |> update_board(new_direction)
+
+    {:noreply, screen}
   end
 
-  def handle_button(_btn, _, screen) do
-    {:norender, screen}
-  end
+  def handle_button(_btn, _, screen), do: {:noreply, screen}
 
+  @impl NameBadge.Screen
   def handle_info(:tick, screen) do
-    {:partial, update_board(screen)}
+    {:noreply, update_board(screen)}
   end
 
   def handle_info(:reset, screen) do
-    {:render, navigate(screen, :back)}
+    {:noreply, navigate(screen, :back)}
   end
 
   defp reset_board(screen) do
@@ -206,6 +224,7 @@ defmodule NameBadge.Screen.Snake do
 
   defp schedule_tick(screen) do
     timer_ref = Process.send_after(self(), :tick, @draw_interval)
+
     assign(screen, :timer, timer_ref)
   end
 
