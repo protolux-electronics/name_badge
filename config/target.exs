@@ -19,6 +19,9 @@ config :shoehorn, init: [:nerves_runtime, :nerves_pack]
 # Advance the system clock on devices without real-time clocks.
 config :nerves, :erlinit, update_clock: true
 
+# set tzdata dir for Nerves device
+config :tzdata, :data_dir, "/data/tzdata"
+
 # Configure the device for SSH IEx prompt access and firmware updates
 #
 # * See https://hexdocs.pm/nerves_ssh/readme.html for general SSH configuration
