@@ -51,10 +51,13 @@ defmodule NameBadge.MixProject do
       {:nerves_runtime, "~> 0.13.0"},
 
       # Dependencies for all targets except :host
+      {:nerves_hub_link, "~> 2.9", targets: @all_targets},
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.1.3", targets: @all_targets},
       {:eink, github: "protolux-electronics/eink", targets: @all_targets},
+      {:vintage_net_wizard,
+       github: "nerves-networking/vintage_net_wizard", targets: @all_targets},
 
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
@@ -62,11 +65,11 @@ defmodule NameBadge.MixProject do
       # version updates, please review their release notes in case
       # changes to your application are needed.
       {:nerves_system_trellis,
-       github: "protolux-electronics/nerves_system_trellis", runtime: false, targets: :trellis}
-    ] ++
-      if nerves_hub_configured?(),
-        do: [{:nerves_hub_link, "~> 2.8", targets: @all_targets}],
-        else: []
+       github: "protolux-electronics/nerves_system_trellis",
+       ref: "debug",
+       runtime: false,
+       targets: :trellis}
+    ]
   end
 
   def release do

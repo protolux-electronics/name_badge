@@ -16,6 +16,7 @@ defmodule NameBadge.Application do
         # Children for all targets
         # Starts a worker by calling: NameBadge.Worker.start_link(arg)
         # {NameBadge.Worker, arg},
+        {Registry, name: NameBadge.Registry, keys: :duplicate},
         NameBadge.Socket
       ] ++ target_children(@target)
 
@@ -31,17 +32,24 @@ defmodule NameBadge.Application do
       {Phoenix.PubSub, name: NameBadge.PubSub},
       NameBadge.DisplayMock,
       NameBadge.BatteryMock,
-      NameBadge.RendererMock,
+      NameBadge.ScreenManager,
       {PhoenixPlayground, live: NameBadge.PreviewLive}
     ]
   end
 
   defp target_children(_target) do
     [
-      NameBadge.Display,
+      button_spec(:button_1),
+      button_spec(:button_2),
       NameBadge.Battery,
-      {NameBadge.Renderer, button_a: "BTN_1", button_b: "BTN_2"}
+      NameBadge.Display,
+      NameBadge.ScreenManager
     ]
+  end
+
+  defp button_spec(button_name, opts \\ []) do
+    spec = {NameBadge.ButtonMonitor, Keyword.put(opts, :button, button_name)}
+    Supervisor.child_spec(spec, id: button_name)
   end
 
   if Mix.target() == :host do
@@ -54,7 +62,7 @@ defmodule NameBadge.Application do
         ssid = kv["wifi_ssid"]
         passphrase = kv["wifi_passphrase"]
 
-        unless empty?(ssid) do
+        if not empty?(ssid) do
           _ = VintageNetWiFi.quick_configure(ssid, passphrase)
           :ok
         end

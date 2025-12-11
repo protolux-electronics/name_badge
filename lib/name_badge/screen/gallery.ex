@@ -1,36 +1,54 @@
 defmodule NameBadge.Screen.Gallery do
-  alias NameBadge.Socket
   use NameBadge.Screen
 
-  require Logger
+  @impl NameBadge.Screen
+  def render(%{image: png} = _assigns) do
+    # this is a unique case. When you return png-encoded binaries,
+    # the system knows that it is a PNG based on the header bytes.
+    # You could abuse this in your own application, if desired
+    png
+  end
 
+  @impl NameBadge.Screen
   def render(_assigns) do
     """
-    #place(center + horizon, stack(dir: ttb,
-      v(48pt),
-      text(size: 64pt, font: "New Amsterdam", "Loading..."),
-      v(8pt),
-      text(size: 20pt, font: "New Amsterdam", "Press any button to exit"),
-      v(32pt),
-      text(size:  20pt, font: "New Amsterdam", "Sponsored by:"),
-      v(12pt),
-      image(height: 48pt, "images/tigris_logo.svg"))
-    );
+    #set text(size: 24pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
+
+
+    = Gallery
+
+    #text(size: 18pt)[
+      This page will automatically refresh when it receives images from the server.
+
+      #text(weight: 800)[IMPORTANT]: To exit the gallery, long press the B button.
+    ]
     """
   end
 
-  def init(_args, screen) do
-    Socket.join_gallery()
+  @impl NameBadge.Screen
+  def mount(_args, screen) do
+    # wait for a couple of seconds so the user can read the information
+    Process.send_after(self(), :join, :timer.seconds(3))
 
     {:ok, screen}
   end
 
-  def handle_button(_, 0, screen) do
-    Socket.leave_gallery()
-    {:render, navigate(screen, :back)}
+  @impl NameBadge.Screen
+  def handle_info({:gallery_image, png}, screen) do
+    {:noreply, assign(screen, image: png)}
   end
 
-  def handle_button(_, _, screen) do
-    {:norender, screen}
+  def handle_info(:join, screen) do
+    NameBadge.Gallery.subscribe_to_gallery()
+
+    {:noreply, screen}
+  end
+
+  @impl NameBadge.Screen
+  def terminate(_reason, screen) do
+    NameBadge.Gallery.unsubscribe_to_gallery()
+
+    screen
   end
 end

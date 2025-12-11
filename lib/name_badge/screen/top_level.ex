@@ -1,53 +1,48 @@
 defmodule NameBadge.Screen.TopLevel do
   use NameBadge.Screen
 
-  require Logger
+  alias NameBadge.Screen
 
   @screens [
-    {"Name Badge", NameBadge.Screen.NameBadge},
-    {"Gallery", NameBadge.Screen.Gallery},
-    {"Schedule", NameBadge.Screen.Schedule},
-    {"Settings", NameBadge.Screen.Settings}
+    {Screen.NameBadge, "Name Badge"},
+    {Screen.Gallery, "Gallery"},
+    {Screen.Settings, "Device Settings"}
   ]
 
+  @impl NameBadge.Screen
   def render(assigns) do
+    {_module, text_to_display} = Enum.at(assigns.screens, assigns.current_index)
+
     """
-    #place(center + horizon, text(size: 72pt, font: "Silkscreen", tracking: -8pt, "#{assigns.current_screen_name}"))
+    #place(center + horizon, text(size: 64pt, font: "Silkscreen", tracking: -8pt, "#{text_to_display}"))
     """
   end
 
-  def init(_opts, screen) do
-    {name, _module} = Enum.at(@screens, 0)
-
+  @impl NameBadge.Screen
+  def mount(_args, screen) do
     screen =
       screen
-      |> assign(:screen_index, 0)
-      |> assign(:screens, @screens)
-      |> assign(:current_screen_name, name)
-      |> assign(:button_hints, %{a: "Next Page", b: "Select"})
+      |> assign(screens: @screens, current_index: 0)
+      |> assign(button_hints: %{a: "Next", b: "Select"})
 
     {:ok, screen}
   end
 
-  def handle_button("BTN_1", 0, screen) do
-    new_index = rem(screen.assigns.screen_index + 1, length(@screens))
-    {name, _module} = Enum.at(@screens, new_index)
-
+  @impl NameBadge.Screen
+  def handle_button(button, _press, screen) do
     screen =
-      screen
-      |> assign(:screen_index, new_index)
-      |> assign(:current_screen_name, name)
+      case button do
+        :button_1 ->
+          num_screens = length(screen.assigns.screens)
+          assign(screen, current_index: rem(screen.assigns.current_index + 1, num_screens))
 
-    {:render, screen}
-  end
+        :button_2 ->
+          {module, _text_to_display} =
+            Enum.at(screen.assigns.screens, screen.assigns.current_index)
 
-  def handle_button("BTN_2", 0, screen) do
-    {_name, module} = Enum.at(@screens, screen.assigns.screen_index)
+          navigate(screen, module)
+      end
 
-    {:render, navigate(screen, module)}
-  end
-
-  def handle_button(_button_name, _value, screen) do
-    {:norender, screen}
+    {:noreply, screen}
   end
 end

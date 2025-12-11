@@ -1,171 +1,70 @@
 defmodule NameBadge.Screen.Settings do
   use NameBadge.Screen
 
-  alias NameBadge.Display
-  alias NameBadge.Battery
-  alias NameBadge.Socket
-  alias NameBadge.Wifi
-  alias NameBadge.Network
+  alias NameBadge.Screen.Settings
 
-  require Logger
+  @settings [
+    {"Personalization", Settings.QrCode},
+    {"WiFi Settings", Settings.WiFi},
+    {"Tutorial", Settings.Tutorial},
+    {"Sudo Mode", Settings.SudoMode}
+  ]
 
-  def render(%{show_stats: true}) do
-    current_ap = Network.current_ap()
-    wlan_ip = Network.wlan_ip()
-    usb_ip = Network.usb_ip()
-
-    firmware = fn
-      nil ->
-        "null"
-
-      fw ->
-        {first, rest} = String.split_at(fw, 8)
-        {_junk, last} = String.split_at(rest, -4)
-
-        "#{first}...#{last}"
-    end
-
-    battery = Float.round(Battery.voltage(), 3)
-
+  @impl NameBadge.Screen
+  def render(assigns) do
     """
-    #grid(
-      columns: (1fr, 1fr),
-      gutter: 16pt,
-      [
-        #set align(top + center);
-        #text(size: 18pt, font: "New Amsterdam")[
-          #heading()[Partition A]
-          Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "a"} \\
-          Version: #{Nerves.Runtime.KV.get("a.nerves_fw_version")} \\
-          UUID: #{Nerves.Runtime.KV.get("a.nerves_fw_uuid") |> firmware.()}
+    #set text(size: 24pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-          #heading()[Battery]
-          #{if Battery.charging?(), do: "Status: Charging", else: "Voltage: " <> to_string(battery) <> "V"} \\
-        ]
-      ],
-      [
-        #set align(top + center);
-        #text(size: 18pt, font: "New Amsterdam")[
-          #heading()[Partition B]
-          Active?: #{Nerves.Runtime.KV.get("nerves_fw_active") == "b"} \\
-          Version: #{Nerves.Runtime.KV.get("b.nerves_fw_version")} \\
-          UUID: #{Nerves.Runtime.KV.get("b.nerves_fw_uuid") |> firmware.()}
+    = Device Settings
 
-          #heading()[Networking]
-          wlan0: #{wlan_ip} \\
-          #{if current_ap, do: "SSID: " <> current_ap}
+    #v(16pt)
 
-          usb0: #{usb_ip} \\
-        ]
-      ],
-    )
+    #{render_settings(assigns.settings, assigns.current_index)}
     """
   end
 
-  def render(%{connected: false}) do
-    """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
-        text(size: 48pt, font: "New Amsterdam", "Not connected :(")
-      )
-    );
-    """
-  end
-
-  def render(%{qr_code: qr_code}) do
-    """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 12pt,
-        image(height: 80%, format: "svg", bytes("#{qr_code}")),
-        v(8pt),
-        text(size: 24pt, font: "New Amsterdam", "Scan to modify settings"),
-      )
-    );
-    """
-  end
-
-  def init(_args, screen) do
-    screen =
-      cond do
-        Socket.connected?() ->
-          token =
-            :crypto.strong_rand_bytes(16)
-            |> Base.encode16()
-
-          config = NameBadge.Config.load_config() || %{}
-          Socket.join_config(token, config)
-
-          url = "https://#{base_url()}/device/#{token}/config"
-
-          Logger.info("Generated QR code for: #{url}")
-
-          {:ok, qr_code_svg} =
-            url
-            |> QRCode.create()
-            |> QRCode.render()
-
-          screen
-          |> assign(:connected, true)
-          |> assign(:qr_code, encode(qr_code_svg))
-          |> assign(:token, token)
-          |> assign(:show_stats, false)
-          |> assign(:sudo_mode, false)
-
-        true ->
-          screen
-          |> assign(:connected, false)
-          |> assign(:show_stats, false)
-          |> assign(:sudo_mode, false)
+  def render_settings(settings, current_index) do
+    table_items =
+      for {{text, _action}, index} <- Enum.with_index(settings) do
+        "#{if index == current_index, do: arrow(), else: "[]"}, [#{text}]"
       end
+      |> Enum.join(", ")
 
-    {:ok, assign(screen, :button_hints, %{a: "Stats for nerds", b: "Back"})}
+    """
+    #grid(columns: (auto, 1fr), column-gutter: 8pt, row-gutter: 12pt, #{table_items})
+    """
   end
 
-  def handle_button(_which, 0, %{assigns: %{sudo_mode: true}} = screen), do: {:norender, screen}
-
-  def handle_button("BTN_1", 0, screen) do
-    button_a_label = if screen.assigns.show_stats, do: "Stats for nerds", else: "Enter Sudo Mode"
-
-    cond do
-      screen.assigns.show_stats ->
-        Task.start_link(fn ->
-          frames =
-            Application.app_dir(:name_badge, "priv/sudo_mode.bin")
-            |> File.read!()
-            |> :erlang.binary_to_term()
-
-          for frame <- frames, do: Display.draw(frame, refresh_type: :partial)
-
-          NameBadge.Renderer.assign(:sudo_mode, false)
-        end)
-
-        {:norender, assign(screen, :sudo_mode, true)}
-
-      true ->
-        screen =
-          screen
-          |> assign(:show_stats, not screen.assigns.show_stats)
-          |> assign(:button_hints, %{a: button_a_label, b: "Back"})
-
-        {:render, screen}
-    end
+  def arrow do
+    """
+    align(left + horizon)[
+      #image(\"images/arrow.svg\", height: 12pt)
+    ]
+    """
   end
 
-  def handle_button("BTN_2", 0, screen) do
-    if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
+  @impl NameBadge.Screen
+  def mount(_args, screen) do
+    screen =
+      screen
+      |> assign(button_hints: %{a: "Scroll", b: "Select"})
+      |> assign(settings: @settings, current_index: 0)
 
-    {:render, navigate(screen, :back)}
+    {:ok, screen}
   end
 
-  def handle_button(_, _, screen) do
-    {:norender, screen}
+  @impl NameBadge.Screen
+  def handle_button(:button_1, _press_type, screen) do
+    num_settings = length(screen.assigns.settings)
+    screen = assign(screen, current_index: rem(screen.assigns.current_index + 1, num_settings))
+
+    {:noreply, screen}
   end
 
-  defp base_url(), do: Application.get_env(:name_badge, :base_url)
+  def handle_button(:button_2, _press_type, screen) do
+    {_text, module} = Enum.at(screen.assigns.settings, screen.assigns.current_index)
 
-  defp encode(str) do
-    str
-    |> String.replace("\\", "\\\\")
-    |> String.replace("\"", "\\\"")
+    {:noreply, navigate(screen, module)}
   end
 end

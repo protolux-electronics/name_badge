@@ -1,124 +1,86 @@
 defmodule NameBadge.Screen.NameBadge do
   use NameBadge.Screen
 
-  alias NameBadge.Socket
-
   require Logger
 
-  @impl true
-  def render(%{connected: false}) do
+  @impl NameBadge.Screen
+  def render(%{valid?: false}) do
     """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 16pt,
-        text(size: 48pt, font: "New Amsterdam", "Not connected :(")
-      )
-    );
-    """
-  end
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-  def render(%{config: nil, qr_code: qr_code}) do
-    """
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 12pt,
-        image(height: 80%, format: "svg", bytes("#{qr_code}")),
-        v(8pt),
-        text(size: 24pt, font: "New Amsterdam", "No configuration found"),
-        text(size: 24pt, font: "New Amsterdam", "Scan to set up"),
-      )
-    );
+    = Error 
+
+    Your name badge is not configured. Please connect to WiFi, then personalize
+    your device via QR code.
     """
   end
 
   def render(%{config: config}) do
+    Logger.info("name badge config is: #{inspect(config)}")
+
     greeting_element =
       case config["greeting"] do
-        nil ->
-          ""
-
-        "" ->
+        greeting when greeting == "" or is_nil(greeting) ->
           ""
 
         greeting when is_binary(greeting) ->
-          "text(font: \"New Amsterdam\", size: #{config["greeting_size"]}pt)[#{greeting}],"
+          "text(font: \"New Amsterdam\", size: #{config["greeting_size"] || 24}pt)[#{greeting}],"
       end
 
     company_element =
       case config["company"] do
-        nil ->
-          ""
-
-        "" ->
+        company when company == "" or is_nil(company) ->
           ""
 
         company when is_binary(company) ->
-          "text(font: \"New Amsterdam\", size: #{config["company_size"]}pt)[#{company}],"
+          "text(font: \"New Amsterdam\", size: #{config["company_size"] || 24}pt)[#{company}],"
       end
 
     """
     #place(center + horizon,
-      stack(dir: ttb, spacing: #{config["spacing"]}pt,
+      stack(dir: ttb, spacing: #{config["spacing"] || 8}pt,
 
         #{greeting_element}
-        text(font: "New Amsterdam", size: #{config["name_size"]}pt, "#{config["first_name"]} #{config["last_name"]}"),
+        text(font: "New Amsterdam", size: #{config["name_size"] || 36}pt, "#{config["first_name"]} #{config["last_name"]}"),
         #{company_element}
       )
     );
     """
   end
 
-  @impl true
-  def init(_args, screen) do
+  @impl NameBadge.Screen
+  def mount(_args, screen) do
     config = NameBadge.Config.load_config()
 
-    screen =
-      cond do
-        not is_nil(config) ->
-          assign(screen, :config, config)
+    case config do
+      %{"first_name" => _first_name, "last_name" => _last_name} ->
+        {:ok, assign(screen, config: config, valid?: true)}
 
-        Socket.connected?() ->
-          token =
-            :crypto.strong_rand_bytes(16)
-            |> Base.encode16()
-
-          Socket.join_config(token, %{})
-
-          url = "https://#{base_url()}/device/#{token}/config"
-
-          Logger.info("Generated QR code for: #{url}")
-
-          {:ok, qr_code_svg} =
-            url
-            |> QRCode.create()
-            |> QRCode.render()
-
-          screen
-          |> assign(:qr_code, encode(qr_code_svg))
-          |> assign(:token, token)
-          |> assign(:config, nil)
-
-        true ->
-          assign(screen, :connected, false)
-      end
-
-    {:ok, assign(screen, :button_hints, %{a: "Next", b: "Back"})}
+      _config ->
+        {:ok, assign(screen, valid?: false, button_hints: %{a: "Set up WiFi", b: "View QR code"})}
+    end
   end
 
-  @impl true
-  def handle_button(_, 0, screen) do
-    if screen.assigns[:token], do: Socket.leave_config(screen.assigns.token)
+  @impl NameBadge.Screen
+  def handle_button(:button_1, :single_press, screen) do
+    cond do
+      screen.assigns.valid? ->
+        {:noreply, screen}
 
-    {:render, navigate(screen, :back)}
+      false ->
+        {:noreply, navigate(screen, NameBadge.Screen.Settings.WiFi)}
+    end
   end
 
-  def handle_button(_, _, screen) do
-    {:norender, screen}
+  def handle_button(:button_2, :single_press, screen) do
+    cond do
+      screen.assigns.valid? ->
+        {:noreply, screen}
+
+      true ->
+        {:noreply, navigate(screen, NameBadge.Screen.Settings.QrCode)}
+    end
   end
 
-  defp base_url(), do: Application.get_env(:name_badge, :base_url)
-
-  defp encode(str) do
-    str
-    |> String.replace("\\", "\\\\")
-    |> String.replace("\"", "\\\"")
-  end
+  def handle_button(_, _, screen), do: {:noreply, screen}
 end

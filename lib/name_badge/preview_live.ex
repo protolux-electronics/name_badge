@@ -3,7 +3,7 @@ if Mix.target() == :host do
     use Phoenix.LiveView
 
     def mount(_params, _session, socket) do
-      Phoenix.PubSub.subscribe(NameBadge.PubSub, "display:frame")
+      NameBadge.DisplayMock.subscribe()
 
       current_frame =
         NameBadge.DisplayMock.get_current_frame()
@@ -18,8 +18,10 @@ if Mix.target() == :host do
         <img src={@current_frame} class="frame-image"/>
 
         <div class="controls">
-          <button phx-click="button_a" class="btn">A</button>
-          <button phx-click="button_b" class="btn">B</button>
+          <button phx-click="button_1" phx-value-press_type="long_press" class="btn">A (Long)</button>
+          <button phx-click="button_1" phx-value-press_type="single_press" class="btn">A</button>
+          <button phx-click="button_2" phx-value-press_type="single_press" class="btn">B</button>
+          <button phx-click="button_2" phx-value-press_type="long_press" class="btn">B (Long)</button>
         </div>
       </div>
 
@@ -69,30 +71,18 @@ if Mix.target() == :host do
       {:noreply, assign(state, :current_frame, frame_to_data_url(packed_binary))}
     end
 
-    def handle_event("button_a", _params, socket) do
-      NameBadge.RendererMock.live_button_pressed("BTN_1")
-      {:noreply, socket}
-    end
+    def handle_event("button_" <> _rest = button_name, %{"press_type" => press_type}, socket) do
+      # technically this is unsafe. But this is only running on your local machine
+      NameBadge.ButtonMonitor.send_button_press(
+        String.to_atom(button_name),
+        String.to_atom(press_type)
+      )
 
-    def handle_event("button_b", _params, socket) do
-      NameBadge.RendererMock.live_button_pressed("BTN_2")
       {:noreply, socket}
     end
 
     defp frame_to_data_url(frame) do
-      encoded_png =
-        frame
-        |> Dither.from_raw!(400, 300)
-        |> Dither.encode!()
-        |> Base.encode64()
-
-      "data:image/png;base64," <> encoded_png
-    end
-
-    defp unpack_bits(packed_binary) do
-      for <<bit::1 <- packed_binary>>, into: <<>> do
-        <<if(bit == 1, do: 255, else: 0)>>
-      end
+      "data:image/png;base64," <> Base.encode64(frame)
     end
   end
 end
