@@ -16,12 +16,11 @@ defmodule NameBadge.Wifi do
       {:ok, "rtl8xxxu"} ->
         pull_down(state)
 
-      {:ok, driver} ->
-        Logger.error("Unknown wifi module: #{driver}. Default to pull-up")
+      {:ok, "rtw_8723du"} ->
         pull_up(state)
 
       error ->
-        Logger.error("NameBadge.Wifi error: #{inspect(error)}")
+        Logger.warning("NameBadge.Wifi error: no supported wifi modules found")
     end
 
     pull_down(state)
@@ -46,22 +45,43 @@ defmodule NameBadge.Wifi do
     :ok = Circuits.GPIO.write_one(state.gpio, 1)
   end
 
-  defp wifi_module() do
-    usb_info_path = "/sys/bus/usb/devices/2-1:1.0/uevent"
+  def wifi_module() do
+    usb_drivers =
+      Path.wildcard("/sys/bus/usb/devices/*/uevent")
+      |> Enum.map(&read_usb_info/1)
+      |> Enum.filter(&Map.has_key?(&1, "DRIVER"))
+      |> Enum.map(&Map.get(&1, "DRIVER"))
+      |> Enum.uniq()
 
-    case File.read(usb_info_path) do
-      {:ok, usb_info} ->
-        driver_name =
-          usb_info
-          |> String.split("DRIVER=")
-          |> Enum.at(1)
-          |> String.split("\n")
-          |> hd()
+    cond do
+      Enum.any?(usb_drivers, &(&1 == "rtl8xxxu")) ->
+        {:ok, "rtl8xxxu"}
 
-        {:ok, driver_name}
+      Enum.any?(usb_drivers, &(&1 == "rtw_8723du")) ->
+        {:ok, "rtw_8723du"}
 
-      _error ->
-        {:error, :unknown}
+      true ->
+        {:error, :no_supported_modules}
     end
+  end
+
+  defp read_usb_info(uevent_path) do
+    File.read!(uevent_path)
+    |> parse_kv_config()
+  end
+
+  defp parse_kv_config(contents) do
+    contents
+    |> String.split("\n")
+    |> Enum.flat_map(&parse_kv/1)
+    |> Enum.into(%{})
+  end
+
+  defp parse_kv(""), do: []
+  defp parse_kv(<<"#", _rest::binary>>), do: []
+
+  defp parse_kv(key_equals_value) do
+    [key, value] = String.split(key_equals_value, "=", parts: 2, trim: true)
+    [{key, value}]
   end
 end
