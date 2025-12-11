@@ -14,7 +14,7 @@ defmodule NameBadge.Screen.Settings do
   def render(assigns) do
     """
     #set text(size: 24pt)
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Device Settings
 

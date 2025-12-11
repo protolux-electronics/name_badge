@@ -31,6 +31,9 @@ defmodule NameBadge.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      # Dependencies for :host target
+      {:phoenix_playground, "~> 0.1.8", targets: [:host]},
+
       # Dependencies for all targets
       {:nerves, "~> 1.10", runtime: false},
       {:shoehorn, "~> 0.9.1"},
@@ -46,9 +49,9 @@ defmodule NameBadge.MixProject do
       # Allow Nerves.Runtime on host to support development, testing and CI.
       # See config/host.exs for usage.
       {:nerves_runtime, "~> 0.13.0"},
-      {:nerves_hub_link, "~> 2.9"},
 
       # Dependencies for all targets except :host
+      {:nerves_hub_link, "~> 2.9", targets: @all_targets},
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.1.3", targets: @all_targets},

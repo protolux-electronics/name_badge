@@ -6,7 +6,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   @impl NameBadge.Screen
   def render(%{welcome_screen: true}) do
     """
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Welcome!
 
@@ -16,7 +16,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
 
   def render(%{step: 1}) do
     """
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Tutorial
 
@@ -29,7 +29,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   @impl NameBadge.Screen
   def render(%{step: 2} = assigns) do
     """
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Tutorial
 
@@ -43,7 +43,7 @@ defmodule NameBadge.Screen.Settings.Tutorial do
   @impl NameBadge.Screen
   def render(%{step: 3} = assigns) do
     """
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Tutorial
 

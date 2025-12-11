@@ -25,8 +25,6 @@ defmodule NameBadge.ScreenManager do
         true -> [Screen.TopLevel]
       end
 
-    Logger.info("initial stack: #{inspect(initial_stack)}")
-
     {:ok, pid} = Screen.start_link(module: hd(initial_stack))
 
     {:ok, %{stack: initial_stack, current_screen: pid}}

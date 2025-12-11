@@ -3,6 +3,8 @@ defmodule NameBadge.Screen.Settings.SudoMode do
 
   require Logger
 
+  @frame_delay if Mix.target() == :host, do: 100, else: 0
+
   @impl NameBadge.Screen
   def render(assigns) do
     Enum.at(assigns.frames, assigns.index)
@@ -26,7 +28,7 @@ defmodule NameBadge.Screen.Settings.SudoMode do
   def handle_info(:render, screen) do
     case screen.assigns.index + 1 do
       new_index when new_index < length(screen.assigns.frames) ->
-        send(self(), :render)
+        Process.send_after(self(), :render, @frame_delay)
         {:noreply, assign(screen, index: new_index)}
 
       _invalid_index ->

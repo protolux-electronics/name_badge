@@ -41,8 +41,9 @@ defmodule NameBadge.Layout do
         true -> "battery-0.png"
       end
 
-    wlan_connected? = VintageNet.get(@wlan0_property) == :internet
-    wifi_icon = if wlan_connected?, do: "wifi.png", else: "wifi-slash.png"
+    wifi_icon =
+      if NameBadge.Network.connected?(@wlan0_property), do: "wifi.png", else: "wifi-slash.png"
+
     link_icon = if NameBadge.Socket.connected?(), do: "link.png", else: "link-slash.png"
 
     """

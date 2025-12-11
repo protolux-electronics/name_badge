@@ -10,6 +10,12 @@ defmodule NameBadge.ButtonMonitor do
     button_2: "BTN_2"
   ]
 
+  def send_button_press(which_button, press_type) do
+    Registry.dispatch(NameBadge.Registry, which_button, fn pids ->
+      for {pid, _value} <- pids, do: send(pid, {:button_event, which_button, press_type})
+    end)
+  end
+
   def start_link(args) do
     {genserver_args, args} = Keyword.split(args, @genserver_args)
     GenServer.start_link(__MODULE__, args, genserver_args)
@@ -58,14 +64,10 @@ defmodule NameBadge.ButtonMonitor do
 
     case NaiveDateTime.diff(now, state.pressed_at, :millisecond) do
       diff_duration when diff_duration < state.long_press_timeout ->
-        Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
-          for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :single_press})
-        end)
+        send_button_press(state.name, :single_press)
 
       _ ->
-        Registry.dispatch(NameBadge.Registry, state.name, fn pids ->
-          for {pid, _value} <- pids, do: send(pid, {:button_event, state.name, :long_press})
-        end)
+        send_button_press(state.name, :long_press)
     end
 
     {:noreply, state}

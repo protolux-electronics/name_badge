@@ -16,6 +16,8 @@ defmodule NameBadge.Application do
         # Children for all targets
         # Starts a worker by calling: NameBadge.Worker.start_link(arg)
         # {NameBadge.Worker, arg},
+        {Registry, name: NameBadge.Registry, keys: :duplicate},
+        NameBadge.Socket
       ] ++ target_children(@target)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -27,21 +29,19 @@ defmodule NameBadge.Application do
   # List all child processes to be supervised
   defp target_children(:host) do
     [
-      # Children that only run on the host during development or test.
-      # In general, prefer using `config/host.exs` for differences.
-      #
-      # Starts a worker by calling: Host.Worker.start_link(arg)
-      # {Host.Worker, arg},
+      {Phoenix.PubSub, name: NameBadge.PubSub},
+      NameBadge.DisplayMock,
+      NameBadge.BatteryMock,
+      NameBadge.ScreenManager,
+      {PhoenixPlayground, live: NameBadge.PreviewLive}
     ]
   end
 
   defp target_children(_target) do
     [
-      {Registry, name: NameBadge.Registry, keys: :duplicate},
       button_spec(:button_1),
       button_spec(:button_2),
       NameBadge.Battery,
-      NameBadge.Socket,
       NameBadge.Display,
       NameBadge.ScreenManager
     ]

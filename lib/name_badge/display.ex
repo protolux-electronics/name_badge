@@ -3,8 +3,6 @@ defmodule NameBadge.Display do
 
   require Logger
 
-  alias NameBadge.Layout
-
   @threshold 127
 
   def start_link(opts \\ []) do
@@ -19,6 +17,7 @@ defmodule NameBadge.Display do
     GenServer.call(__MODULE__, {:render_png, png, opts})
   end
 
+  @impl GenServer
   def init(_opts) do
     {:ok, eink} =
       EInk.new(EInk.Driver.UC8276,
@@ -29,10 +28,16 @@ defmodule NameBadge.Display do
       )
 
     EInk.clear(eink, :white)
+    EInk.draw(eink, initial_frame())
+
+    # this sleep blocks the init of other processes in the
+    # supervision tree, creating a short "loading screen"
+    Process.sleep(3_000)
 
     {:ok, %{eink: eink}}
   end
 
+  @impl GenServer
   def handle_call({:render_typst, markup, opts}, _from, state) do
     eink_data =
       eval_template(markup)
@@ -43,6 +48,7 @@ defmodule NameBadge.Display do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:render_png, png, opts}, _from, state) do
     eink_data = prepare_png(png)
 
@@ -51,7 +57,20 @@ defmodule NameBadge.Display do
     {:reply, :ok, state}
   end
 
-  defp eval_template(template) do
+  defp initial_frame() do
+    """
+    #set page(width: 400pt, height: 300pt)
+    #place(center + horizon, image("images/logos.svg", width: 196pt))
+    """
+    |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
+    |> List.first()
+    |> Dither.decode!()
+    |> Dither.grayscale!()
+    |> Dither.to_raw!()
+    |> pack_bits()
+  end
+
+  def eval_template(template) do
     typst_opts = [root_dir: typst_dir(), extra_fonts: [fonts_dir()]]
 
     Typst.render_to_png!(template, [], typst_opts)
@@ -68,17 +87,15 @@ defmodule NameBadge.Display do
     |> Dither.grayscale!()
     |> Dither.to_raw!()
     |> pack_bits()
-    |> Enum.join()
   end
 
-  defp pack_bits(""), do: []
+  defp pack_bits(""), do: ""
 
-  defp pack_bits(<<b0, b1, b2, b3, b4, b5, b6, b7, rest::binary>>) do
-    [
+  defp pack_bits(binary) do
+    for <<b0, b1, b2, b3, b4, b5, b6, b7 <- binary>>, into: <<>> do
       <<threshold(b0)::1, threshold(b1)::1, threshold(b2)::1, threshold(b3)::1, threshold(b4)::1,
         threshold(b5)::1, threshold(b6)::1, threshold(b7)::1>>
-      | pack_bits(rest)
-    ]
+    end
   end
 
   defp threshold(b) when b >= @threshold, do: 1

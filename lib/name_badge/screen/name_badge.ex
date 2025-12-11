@@ -6,7 +6,7 @@ defmodule NameBadge.Screen.NameBadge do
   @impl NameBadge.Screen
   def render(%{valid?: false}) do
     """
-    #show heading: set text(font: "Silkscreen", size: 36pt, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
     = Error 
 

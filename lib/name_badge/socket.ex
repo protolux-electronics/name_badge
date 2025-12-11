@@ -36,7 +36,7 @@ defmodule NameBadge.Socket do
 
   @impl Slipstream
   def handle_message("config:" <> _token, "apply", config, socket) do
-    Logger.info("Received new configuration! #{inspect(config)}")
+    Logger.debug("Received new configuration! #{inspect(config)}")
 
     NameBadge.Config.store_config(config)
 

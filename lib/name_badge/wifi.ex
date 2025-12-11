@@ -19,7 +19,7 @@ defmodule NameBadge.Wifi do
       {:ok, "rtw_8723du"} ->
         pull_up(state)
 
-      error ->
+      _error ->
         Logger.warning("NameBadge.Wifi error: no supported wifi modules found")
     end
 
@@ -36,6 +36,9 @@ defmodule NameBadge.Wifi do
   def power_off(state) do
     {:ok, state, :timer.seconds(2)}
   end
+
+  @impl PowerManager
+  def handle_info(_message, state), do: {:noreply, state}
 
   defp pull_down(state) do
     :ok = Circuits.GPIO.write_one(state.gpio, 0)
