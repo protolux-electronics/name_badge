@@ -16,11 +16,11 @@ defmodule NameBadge.DisplayMock do
 
   @impl GenServer
   def handle_call({:draw, image, _opts}, _from, state) do
-    img_packed = NameBadge.Display.pack_bits(image)
-    Phoenix.PubSub.broadcast(NameBadge.PubSub, "display:frame", {:frame, img_packed})
+    Phoenix.PubSub.broadcast(NameBadge.PubSub, "display:frame", {:frame, image})
+
     Process.sleep(100)
 
-    {:reply, :ok, Map.put(state, :current_frame, img_packed)}
+    {:reply, :ok, Map.put(state, :current_frame, image)}
   end
 
   @impl GenServer

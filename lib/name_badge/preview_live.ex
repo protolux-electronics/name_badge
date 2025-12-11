@@ -4,7 +4,12 @@ if Mix.target() == :host do
 
     def mount(_params, _session, socket) do
       Phoenix.PubSub.subscribe(NameBadge.PubSub, "display:frame")
-      {:ok, assign(socket, current_frame: frame_to_data_url(NameBadge.DisplayMock.get_current_frame()))}
+
+      current_frame =
+        NameBadge.DisplayMock.get_current_frame()
+        |> frame_to_data_url()
+
+      {:ok, assign(socket, current_frame: current_frame)}
     end
 
     def render(assigns) do
@@ -77,10 +82,8 @@ if Mix.target() == :host do
     defp frame_to_data_url(frame) do
       encoded_png =
         frame
-        |> unpack_bits()
-        |> :erlang.binary_to_list()
-        |> Dither.NIF.from_raw(400, 300)
-        |> then(fn {:ok, ref} -> Dither.encode!(ref) end)
+        |> Dither.from_raw!(400, 300)
+        |> Dither.encode!()
         |> Base.encode64()
 
       "data:image/png;base64," <> encoded_png
