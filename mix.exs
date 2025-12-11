@@ -86,6 +86,5 @@ defmodule NameBadge.MixProject do
     product_secret = System.get_env("NH_PRODUCT_SECRET")
 
     not is_nil(product_key) and not is_nil(product_secret)
-    false
   end
 end
