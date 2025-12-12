@@ -4,14 +4,16 @@ defmodule NameBadge.Screen.Snake do
   require Logger
 
   @board_size 8
-  @draw_interval :timer.seconds(1)
   @reset_interval :timer.seconds(5)
 
   @zero_size @board_size - 1
 
   @impl NameBadge.Screen
   def mount(_args, screen) do
-    screen = reset_board(screen)
+    screen =
+      screen
+      |> assign(button_hints: %{a: "Left", b: "Right"})
+      |> reset_board()
 
     {:ok, screen}
   end
@@ -223,7 +225,7 @@ defmodule NameBadge.Screen.Snake do
   end
 
   defp schedule_tick(screen) do
-    timer_ref = Process.send_after(self(), :tick, @draw_interval)
+    timer_ref = Process.send_after(self(), :tick, draw_interval(screen.assigns.points))
 
     assign(screen, :timer, timer_ref)
   end
@@ -279,4 +281,9 @@ defmodule NameBadge.Screen.Snake do
   defp snake_eats_target?(new_head, target) do
     new_head == target
   end
+
+  defp draw_interval(points) when points < 5, do: :timer.seconds(1)
+  defp draw_interval(points) when points < 10, do: 900
+  defp draw_interval(points) when points < 15, do: 800
+  defp draw_interval(_points), do: 600
 end
