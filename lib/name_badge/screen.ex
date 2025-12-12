@@ -57,14 +57,13 @@ defmodule NameBadge.Screen do
   @impl GenServer
   def handle_continue(:mount, screen) do
     {:ok, screen} = screen.module.mount(screen.mount_args, screen)
+    ButtonMonitor.subscribe(:button_1)
+    ButtonMonitor.subscribe(:button_2)
 
     process_screen(screen)
   end
 
   def handle_continue({:render, render_opts}, screen) do
-    # To prevent "double clicking", we don't handle button presses during rendering of the frame
-    subscribe_to_buttons(false)
-
     # this is blocking, takes about 1s
     screen.module.render(screen.assigns)
     |> case do
@@ -76,14 +75,12 @@ defmodule NameBadge.Screen do
       ref when is_reference(ref) ->
         Display.render_png(ref, render_opts)
 
+      # otherwise, assume it is a typst template
       template when is_binary(template) ->
         template
         |> Layout.app_layout(button_hints: Map.get(screen.assigns, :button_hints, %{}))
         |> Display.render_typst(render_opts)
     end
-
-    # Re-enable listening for button presses
-    subscribe_to_buttons(true)
 
     {:noreply, %{screen | last_render: screen.assigns, first_render?: false}}
   end
@@ -114,16 +111,6 @@ defmodule NameBadge.Screen do
   @impl GenServer
   def terminate(reason, screen) do
     screen.module.terminate(reason, screen)
-  end
-
-  defp subscribe_to_buttons(true) do
-    ButtonMonitor.subscribe(:button_1)
-    ButtonMonitor.subscribe(:button_2)
-  end
-
-  defp subscribe_to_buttons(false) do
-    ButtonMonitor.unsubscribe(:button_1)
-    ButtonMonitor.unsubscribe(:button_2)
   end
 
   defp process_screen(screen) do
