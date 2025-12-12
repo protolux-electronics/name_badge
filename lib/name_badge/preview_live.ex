@@ -23,10 +23,12 @@ if Mix.target() == :host do
           <button phx-click="button_2" phx-value-press_type="single_press" class="btn">B</button>
           <button phx-click="button_2" phx-value-press_type="long_press" class="btn">B (Long)</button>
         </div>
+        <p class="attribution">Simulator was contributed by <a href="https://github.com/matthias-maennich">Matthias Männich</a>. Thanks Matthias!</p>
       </div>
 
       <style type="text/css">
         body {
+          font-family: "Helvetica";
           margin: 0;
           padding: 2rem;
           background: #f5f5f5;
@@ -62,6 +64,20 @@ if Mix.target() == :host do
         .btn:active {
           transform: scale(0.95);
           background: #e0e0e0;
+        }
+
+        .attribution {
+          margin-top: 1rem;
+          font-size: 0.6rem;
+        }
+
+        a {
+          color: Navy;
+          text-decoration: none;
+        }
+
+        a:hover {
+          text-decoration: underline;
         }
       </style>
       """
