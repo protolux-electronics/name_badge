@@ -99,12 +99,20 @@ open your browser page on launch.
 >
 > From here you can compile a firmware and upload as normal.
 
-## Hardware Availability
+## Hardware Design
+
+The repo for the hardware design can be found
+[here](https://github.com/protolux-electronics/wisteria_hardware). This includes
+schematics, layout and case design files.
 
 The hardware was custom-made for Goatmire 2025, and there was only a limited
-supply of devices. If you have an interest in using these devices for some other
-event, please get in touch - I would consider making additional batches for the
-right event.
+supply of devices. It is technically possible to build your own from the
+resources in this repository, however I do not recommend it as some of the
+components (e-ink display, wifi module, etc) were custom ordered from the
+manufacturer and will be hard to obtain in low quantities.
+
+If you have an interest in using these devices for some other event, please get
+in touch - I would consider making additional batches for the right event.
 
 For individuals, I am working on a new revision of the hardware design with some
 nice upgrades - a 5.8" display, low power mode, additional sensors, and more.
