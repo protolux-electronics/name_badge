@@ -48,7 +48,7 @@ The getting started guide above shows how to load pre-built firmware on the
 device. For advanced topics, please see the guides below:
 
 - [Flashing a firmware file via FEL](guides/flashing-via-fel.md)
-- [Build custom firmwware](guides/build-custom-firmware.md)
+- [Build custom firmware](guides/build-custom-firmware.md)
 - [Create your first screen](guides/custom-screen.md)
 
 ## Simulator
