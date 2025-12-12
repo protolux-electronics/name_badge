@@ -67,7 +67,7 @@ defmodule NameBadge.Screen.NameBadge do
       screen.assigns.valid? ->
         {:noreply, screen}
 
-      false ->
+      true ->
         {:noreply, navigate(screen, NameBadge.Screen.Settings.WiFi)}
     end
   end
