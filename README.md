@@ -1,68 +1,101 @@
 # Nerves Name Badge
 
-This is the Nerves software for the Goatmire/NervesConf EU 2025 digital name
-badge.
+This is the Nerves software for the Goatmire EU 2025 digital name badge.
 
-If you were at the event and have a device which you want to start building
-custom screens for, please be aware of the following:
+![The Nerves name badge](guides/assets/outside.png)
+![The internals of the Nerves name badge](guides/assets/inside.png)
 
-- A firmware update was pushed out during the last day of the event, which
-  allows for ssh authentication via username/password. You can tell if you have
-  the update by checking out the `Settings` screen, and verifying that one of
-  the partitions contains firmware v0.2.0.
-- If you do not have the firmware update, but would like to access the device
-  via ssh, the original ssh key was published in the Goatmire discord at the end
-  of the event. Use this key, along with the following or similar configuration
-  in your `~/.ssh/config` file to access the board:
+My conference talk about the badges is available on YouTube:
 
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VFmlNZ_BQHQ?si=WVqI0WUIfYbTb64n" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## Getting Started
+
+If you already have a badge, you can get started by following these instructions
+to load a firmware on your device. For those without the hardware, you can still
+join in on the fun by using the simulator to create new screens. See more
+information about the simulator below.
+
+### Uploading pre-built firmware
+
+If you have a device, it should already have usable firmware on it. That means,
+you should be able to connect to it via SSH over a USB connection.
+
+To test if this is the case, do the following:
+
+1. Plug a USB-C cable from your computer to the badge
+2. Turn off the device via the slide switch
+3. Ensure the red or green LED immediately to the left of the USB port is on
+4. Turn on the device via the slide switch
+5. Wait for the device to boot
+6. On your machine, run `ssh wisteria.local`
+   - The default SSH password is `nerves`
+   - If you are having trouble connecting to the device, please check your
+     network settings and verify that a USB Ethernet device is attached to your
+     machine.
+   - If the issue still persists, reboot the device
+
+Once you are connected, you can upload the latest firmware `.fw` file from the
+releases section of this page. To upload, run:
+
+`cat path/to/release.fw | ssh -s wisteria.local fwup`
+
+The device will automatically reboot after uploading the firmware file
+
+## Advanced
+
+The getting started guide above shows how to load pre-built firmware on the
+device. For advanced topics, please see the guides below:
+
+- [Flashing a firmware file via FEL](guides/flashing-via-fel.md)
+- [Build custom firmwware](guides/flashing-via-fel.md)
+- [Create your first screen](guides/custom-screen.md)
+
+## Simulator
+
+Thanks to Matthias Männich for contributing the simulator! Here's what it looks
+like:
+
+![Simulator gif](guides/assets/simulator.gif)
+
+To run the simulator, use the following command:
+
+```bash
+MIX_TARGET=host iex -S mix
 ```
-Host wisteria*.local
-  StrictHostKeyChecking no
-  UserKnownHostsFile=/dev/null
-  IdentityFile ~/.ssh/id_goatmire
-```
 
-- If you didn't get the update, you can also create a WiFi hotspot from your
-  phone to allow the device to download the latest version of the software. The
-  device knows how to connect to a hotspot with SSID `nervesconf` and password
-  `nervesconf`. Wait for the device to download the update and reboot (this may
-  take some time)
-- Finally, you could also re-flash the board using the firmware file in the
-  latest release of this repo. This is slightly more advanced - you will need to
-  install `sunxi-tools` and download the flashing script from the
-  [`usb_fel_loaders`](https://github.com/gworkman/usb_fel_loaders). Installation
-  instructions for both are available in the README. Use the precompiled assets
-  in the releases to save yourself a compilation step. Once you have the tools
-  installed, you need to do the following:
-  - Turn off the device, with the case open
-  - Connect your computer via USB
-  - Press the button labeled `FEL`
-  - Turn on the device, release the `FEL` button
-  - Run `./launch.sh trellis` from the an unzipped release which you can download from the [usb_fel_loaders repo](https://github.com/gworkman/usb_fel_loaders/releases)
-  - The board will reboot and appear as a USB media device (on Mac, your
-    computer may say "Device was uninitialized". Just press "ignore").
-  - Finally, run
-    `NERVES_WIFI_SSID="..." NERVES_WIFI_PASSPHRASE="..." fwup name_badge.fw`,
-    which will upload the firmware to the device and automatically reboot
+This will start a Phoenix LiveView on `localhost:4000`. It should automatically
+open your browser page on launch.
 
-## Connecting via SSH
+> [!TIP]
+> When changing code while using the simulator, you can type `recompile` at the
+> IEx prompt. The running code will be updated (you may need to navigate to a
+> different screen or refresh the browser page to see the changes).
 
-The default hostname of the device is `wisteria.local`. If you see an SSH
-username/password prompt, both values are `nerves`.
+## Hardware Availability
 
-## Building the firmware
+The hardware was custom-made for Goatmire 2025, and there was only a limited
+supply of devices. If you have an interest in using these devices for some other
+event, please get in touch - I would consider making additional batches for the
+right event.
 
-You need a rust toolchain installed. Plus the following architecture:
+For individuals, I am working on a new revision of the hardware design with some
+nice upgrades - a 5.8" display, low power mode, additional sensors, and more.
+Stay tuned for updates!
 
-`rustup target add armv7-unknown-linux-gnueabihf`
+## Acknowledgments
 
-- `export MIX_TARGET=trellis`
-- `export BASE_URL=goatmire.fly.dev`
-- `mix deps.get`
-- `mix firmware`
-- Put the device in FEL mode, as described above
-- `mix burn`
+Special thanks to Lars Wikman for encouraging this crazy idea at Goatmire 2025,
+finding a sponsor to cover the cost of the hardware, brainstorming badge
+features with me, and so much more.
 
-Afterwards, firmware can be uploaded over ssh via `mix upload`.
+Another huge shout out to Frank Hunleth, Benjamin Milde, and Flora and Tom
+Petterson for helping me assemble the badges at midnight, 8 hours before the
+conference started.
 
-More docs coming soon. Thanks for joining Goatmire 2025!
+## Protolux Electronics
+
+This is a project by [Protolux Electronics](https://protolux.io), the small
+Nerves-focused consultancy that I run. We do custom hardware and software for
+IoT, industrial automation, and more. If you have a project in mind, let's get
+in touch!
