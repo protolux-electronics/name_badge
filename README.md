@@ -107,16 +107,19 @@ schematics, layout and case design files.
 
 The hardware was custom-made for Goatmire 2025, and there was only a limited
 supply of devices. It is technically possible to build your own from the
-resources in this repository, however I do not recommend it as some of the
+resources in this repository. However, I do not recommend it as some of the
 components (e-ink display, wifi module, etc) were custom ordered from the
-manufacturer and will be hard to obtain in low quantities.
+manufacturer and will be difficult to obtain in low quantities.
 
-If you have an interest in using these devices for some other event, please get
-in touch - I would consider making additional batches for the right event.
+I am working on a new revision of the hardware design with some nice upgrades -
+a 5.8" display, low power mode, additional sensors, and more. It will hopefully
+be available for purchase in early 2026. Stay tuned for updates!
 
-For individuals, I am working on a new revision of the hardware design with some
-nice upgrades - a 5.8" display, low power mode, additional sensors, and more.
-Stay tuned for updates!
+## Use at Conferences and Events
+
+If you have an interest in using these devices at a wide scale at an event,
+please get in touch - I would consider producing more units or designing custom
+versions of the hardware for the right event.
 
 ## Acknowledgments
 
@@ -125,8 +128,8 @@ finding a sponsor to cover the cost of the hardware, brainstorming badge
 features with me, and so much more.
 
 Another huge shout out to Frank Hunleth, Benjamin Milde, and Flora and Tom
-Petterson for helping me assemble the badges at midnight, 8 hours before the
-conference started.
+Petterson for helping me assemble the badges at midnight, less than 8 hours
+before the Goatmire conference started.
 
 ## Protolux Electronics
 
