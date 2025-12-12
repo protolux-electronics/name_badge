@@ -2,12 +2,12 @@
 
 This is the Nerves software for the Goatmire EU 2025 digital name badge.
 
-![The Nerves name badge](guides/assets/outside.jpg)
-![The internals of the Nerves name badge](guides/assets/inside.jpg)
+<img src="guides/assets/outside.jpg" width="600">
+<img src="guides/assets/inside.jpg" width="600">
 
 My conference talk about the badges is available on YouTube:
 
-<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VFmlNZ_BQHQ?si=WVqI0WUIfYbTb64n" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[<img src="https://img.youtube.com/vi/VFmlNZ_BQHQ/0.jpg" width="600">](https://youtu.be/VFmlNZ_BQHQ?si=QmM__-oR1jTcWF8w)
 
 ## Getting Started
 
