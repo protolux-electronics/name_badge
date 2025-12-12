@@ -48,7 +48,7 @@ The getting started guide above shows how to load pre-built firmware on the
 device. For advanced topics, please see the guides below:
 
 - [Flashing a firmware file via FEL](guides/flashing-via-fel.md)
-- [Build custom firmwware](guides/flashing-via-fel.md)
+- [Build custom firmwware](guides/build-custom-firmware.md)
 - [Create your first screen](guides/custom-screen.md)
 
 ## Simulator
@@ -60,7 +60,7 @@ like:
 
 To run the simulator, use the following command:
 
-```bash
+```sh
 MIX_TARGET=host iex -S mix
 ```
 
@@ -71,6 +71,34 @@ open your browser page on launch.
 > When changing code while using the simulator, you can type `recompile` at the
 > IEx prompt. The running code will be updated (you may need to navigate to a
 > different screen or refresh the browser page to see the changes).
+
+> [!WARNING]
+> If you build for the simulator, then build a firmware for your device, you may
+> see an error message like the following:
+>
+> ```
+> scrub-otp-release.sh: ERROR: Unexpected executable format for '/Users/gus/Projects/elixir/name_badge/_build/trellis_dev/_nerves-tmp/rootfs_overlay/srv/erlang/lib/typst-0.1.7/priv/native/libtypst_nif-v0.1.7-nif-2.15-x86_64-apple-darwin.so'
+>
+> Got:
+>  file:Mach-O 64-bit dynamically linked shared library x86_64
+>
+> Expecting:
+>  readelf:ARM;0x5000400, Version5 EABI, hard-float ABI
+>
+> This file was compiled for the host or a different target and probably
+> will not work.
+> ```
+>
+> This is an unfortunate side effect with using NIFs of different architectures
+> in the Nerves build. To fix the error, run:
+>
+> ```sh
+> mix deps.clean dither
+> mix deps.clean typst 
+> MIX_TARGET=trellis mix deps.get
+> ```
+>
+> From here you can compile a firmware and upload as normal.
 
 ## Hardware Availability
 
