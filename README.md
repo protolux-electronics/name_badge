@@ -89,8 +89,7 @@ open your browser page on launch.
 > will not work.
 > ```
 >
-> This is an unfortunate side effect with using NIFs of different architectures
-> in the Nerves build. To fix the error, run:
+> To fix the error, run:
 >
 > ```sh
 > mix deps.clean dither
