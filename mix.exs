@@ -64,11 +64,7 @@ defmodule NameBadge.MixProject do
       # bumps to Nerves systems. Since these include Linux kernel and Erlang
       # version updates, please review their release notes in case
       # changes to your application are needed.
-      {:nerves_system_trellis,
-       github: "protolux-electronics/nerves_system_trellis",
-       ref: "debug",
-       runtime: false,
-       targets: :trellis}
+      {:nerves_system_trellis, "~> 0.1.1", runtime: false, targets: :trellis}
     ]
   end
 
