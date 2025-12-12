@@ -38,7 +38,9 @@ defmodule NameBadge.Socket do
   def handle_message("config:" <> _token, "apply", config, socket) do
     Logger.debug("Received new configuration! #{inspect(config)}")
 
-    NameBadge.Config.store_config(config)
+    NameBadge.Config.load_config()
+    |> Map.merge(config)
+    |> NameBadge.Config.store_config()
 
     {:ok, socket}
   end

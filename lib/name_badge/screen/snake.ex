@@ -133,8 +133,6 @@ defmodule NameBadge.Screen.Snake do
 
   @impl NameBadge.Screen
   def handle_button(:button_1, :single_press, screen) do
-    Logger.debug("Snake received :button_1")
-
     new_direction =
       case moving_direction(screen.assigns.snake) do
         :right -> :up
@@ -152,8 +150,6 @@ defmodule NameBadge.Screen.Snake do
   end
 
   def handle_button(:button_2, :single_press, screen) do
-    Logger.debug("Snake received :button_2")
-
     new_direction =
       case moving_direction(screen.assigns.snake) do
         :right -> :down

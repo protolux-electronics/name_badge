@@ -13,8 +13,6 @@ defmodule NameBadge.ButtonMonitor do
   ]
 
   def send_button_press(which_button, press_type) do
-    Logger.debug("sending button press: {#{inspect(which_button)}, #{inspect(press_type)}}")
-
     Registry.dispatch(NameBadge.Registry, which_button, fn pids ->
       for {pid, _value} <- pids, do: send(pid, {:button_event, which_button, press_type})
     end)

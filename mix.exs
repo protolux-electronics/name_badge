@@ -6,6 +6,8 @@ defmodule NameBadge.MixProject do
   @version "0.3.1"
   @all_targets [:trellis]
 
+  @nerves_hub_configured? System.get_env("NH_PRODUCT_KEY") != nil
+
   def project do
     [
       name: @name,
@@ -51,7 +53,7 @@ defmodule NameBadge.MixProject do
       {:nerves_runtime, "~> 0.13.0"},
 
       # Dependencies for all targets except :host
-      {:nerves_hub_link, "~> 2.9", targets: @all_targets},
+      {:nerves_hub_link, "~> 2.9", targets: @all_targets, runtime: @nerves_hub_configured?},
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.1.3", targets: @all_targets},
@@ -78,12 +80,5 @@ defmodule NameBadge.MixProject do
       steps: [&Nerves.Release.init/1, :assemble],
       strip_beams: Mix.env() == :prod or [keep: ["Docs"]]
     ]
-  end
-
-  def nerves_hub_configured?() do
-    product_key = System.get_env("NH_PRODUCT_KEY")
-    product_secret = System.get_env("NH_PRODUCT_SECRET")
-
-    not is_nil(product_key) and not is_nil(product_secret)
   end
 end
