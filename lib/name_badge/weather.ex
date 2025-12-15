@@ -123,11 +123,18 @@ defmodule NameBadge.Weather do
         }
 
         # Schedule periodic updates
-        {:ok, timer} = :timer.send_interval(@update_interval, :update_weather)
+        case :timer.send_interval(@update_interval, :update_weather) do
+          {:ok, timer} ->
+            # Do initial weather fetch
+            updated_state = update_weather(%{new_state | timer: timer})
+            {:noreply, updated_state}
 
-        # Do initial weather fetch
-        updated_state = update_weather(%{new_state | timer: timer})
-        {:noreply, updated_state}
+          {:error, reason} ->
+            Logger.error("Failed to start weather update timer: #{inspect(reason)}")
+            # Continue without timer - weather can still be refreshed manually
+            updated_state = update_weather(new_state)
+            {:noreply, updated_state}
+        end
 
       {:error, reason} ->
         Logger.error("Failed to get location: #{inspect(reason)}")
