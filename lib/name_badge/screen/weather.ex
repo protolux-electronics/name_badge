@@ -102,7 +102,7 @@ defmodule NameBadge.Screen.Weather do
     # Show loading state
     screen =
       screen
-      |> assign(loading: true, error: nil)
+      |> assign(weather: nil, loading: true, error: nil)
 
     # Schedule a check for updated data in 2 seconds
     Process.send_after(self(), :check_weather_update, 2_000)
