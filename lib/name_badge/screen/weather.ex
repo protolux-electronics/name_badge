@@ -73,19 +73,20 @@ defmodule NameBadge.Screen.Weather do
 
   @impl NameBadge.Screen
   def mount(_args, screen) do
-    # Get initial weather data
+    # Get initial weather data and location
     weather = NameBadge.Weather.get_current_weather()
+    location = NameBadge.Weather.get_location_name()
 
     screen =
       case weather do
         nil ->
           screen
-          |> assign(weather: nil, loading: true, location: nil)
+          |> assign(weather: nil, loading: true, location: location)
           |> assign(button_hints: %{a: "Refresh", b: "Back"})
 
         weather_data ->
           screen
-          |> assign(weather: weather_data, loading: false, location: get_location_name())
+          |> assign(weather: weather_data, loading: false, location: location)
           |> assign(button_hints: %{a: "Refresh", b: "Back"})
       end
 
@@ -119,14 +120,15 @@ defmodule NameBadge.Screen.Weather do
   @impl NameBadge.Screen
   def handle_info(:check_weather_update, screen) do
     weather = NameBadge.Weather.get_current_weather()
+    location = NameBadge.Weather.get_location_name()
 
     screen =
       case weather do
         nil ->
-          assign(screen, weather: nil, loading: false, error: "Unable to fetch weather data")
+          assign(screen, weather: nil, loading: false, error: "Unable to fetch weather data", location: location)
 
         weather_data ->
-          assign(screen, weather: weather_data, loading: false, error: nil, location: get_location_name())
+          assign(screen, weather: weather_data, loading: false, error: nil, location: location)
       end
 
     {:noreply, screen}
@@ -198,9 +200,4 @@ defmodule NameBadge.Screen.Weather do
     if is_day, do: "Unknown (day)", else: "Unknown (night)"
   end
 
-  defp get_location_name do
-    # This could be enhanced to get the actual location name from the weather service
-    # For now, we'll return a generic message
-    "Current Location"
-  end
 end

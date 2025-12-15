@@ -57,6 +57,23 @@ defmodule NameBadge.Weather do
     GenServer.cast(__MODULE__, :refresh_weather)
   end
 
+  @doc """
+  Get the current location name (e.g., "Berlin, Germany").
+  Returns nil if not available.
+  """
+  def get_location_name do
+    try do
+      GenServer.call(__MODULE__, :get_location_name, @call_timeout)
+    catch
+      :exit, {:timeout, _} ->
+        Logger.warning("Weather service location name call timed out")
+        nil
+      :exit, {:noproc, _} ->
+        Logger.warning("Weather service not available for location name")
+        nil
+    end
+  end
+
   # Server Callbacks
 
   @impl GenServer
@@ -79,6 +96,11 @@ defmodule NameBadge.Weather do
   @impl GenServer
   def handle_call(:get_current_weather, _from, state) do
     {:reply, state.weather_data, state}
+  end
+
+  @impl GenServer
+  def handle_call(:get_location_name, _from, state) do
+    {:reply, state.location_source, state}
   end
 
   @impl GenServer
