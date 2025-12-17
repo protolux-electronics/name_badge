@@ -193,27 +193,29 @@ defmodule NameBadge.Screen.Snake do
     new_head = next_head(snake, moving_direction)
     new_target = next_target(snake, target)
 
+    screen =
+      cond do
+        out_of_bounds?(new_head) ->
+          assign(screen, game_over: true)
+
+        snake_bites_itself?(new_head, snake) ->
+          assign(screen, game_over: true)
+
+        snake_eats_target?(new_head, target) ->
+          assign(screen, snake: [new_head | snake], target: new_target, points: points + 1)
+
+        true ->
+          assign(screen, snake: Enum.drop([new_head | snake], -1))
+      end
+
     cond do
-      out_of_bounds?(new_head) ->
-        assign(screen, game_over: true)
-
-      snake_bites_itself?(new_head, snake) ->
-        assign(screen, game_over: true)
-
-      snake_eats_target?(new_head, target) ->
-        assign(screen, snake: [new_head | snake], target: new_target, points: points + 1)
-
-      true ->
-        assign(screen, snake: Enum.drop([new_head | snake], -1))
-    end
-    |> then(fn screen ->
-      if screen.assigns.game_over do
+      screen.assigns.game_over ->
         schedule_reset()
         screen
-      else
+
+      true ->
         schedule_tick(screen)
-      end
-    end)
+    end
   end
 
   defp schedule_reset() do
@@ -271,7 +273,10 @@ defmodule NameBadge.Screen.Snake do
   end
 
   defp snake_bites_itself?(new_head, snake) do
-    Enum.any?(snake, &(&1 == new_head))
+    # the last cell will move out of the way, so we drop it first
+    snake
+    |> Enum.drop(-1)
+    |> Enum.any?(&(&1 == new_head))
   end
 
   defp snake_eats_target?(new_head, target) do
