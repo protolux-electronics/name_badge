@@ -99,6 +99,14 @@ open your browser page on launch.
 >
 > From here you can compile a firmware and upload as normal.
 
+## Snake
+
+The name badge runs snake! Here's a preview:
+
+![Snake running on the name badge](guides/assets/snake.gif)
+
+Thanks Peter Ullrich for the contribution!
+
 ## Hardware Design
 
 The repo for the hardware design can be found

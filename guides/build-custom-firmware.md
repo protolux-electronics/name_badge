@@ -10,6 +10,7 @@ instructions for your machine.
 Once everything is installed, in this root directory of the repo, run:
 
 ```sh
+export BASE_URL="goatmire.fly.dev"
 export MIX_TARGET=trellis
 mix deps.get
 mix firmware

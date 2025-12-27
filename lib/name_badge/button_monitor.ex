@@ -3,6 +3,8 @@ defmodule NameBadge.ButtonMonitor do
 
   alias Circuits.GPIO
 
+  require Logger
+
   @long_press_timeout_default 500
   @genserver_args [:name, :timeout, :debug, :spawn_opt, :hibernate_after]
   @button_gpios [
