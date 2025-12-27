@@ -27,6 +27,7 @@ defmodule NameBadge.Weather do
   # API URLs
   @ip_geolocation_url "http://ip-api.com/json"
   @openmeteo_url "https://api.open-meteo.com/v1/forecast"
+  @nominatim_url "https://nominatim.openstreetmap.org/reverse"
 
   # Client API
 
@@ -192,6 +193,81 @@ defmodule NameBadge.Weather do
   end
 
   defp get_location do
+    case get_configured_location() do
+      {:ok, lat, lon, source} ->
+        {:ok, lat, lon, source}
+
+      :not_configured ->
+        get_location_from_ip()
+    end
+  end
+
+  defp get_configured_location do
+    # Environment variables take precedence over config
+    env_lat = System.get_env("WEATHER_LATITUDE")
+    env_lon = System.get_env("WEATHER_LONGITUDE")
+    env_name = System.get_env("WEATHER_LOCATION_NAME")
+
+    config_lat = Application.get_env(:name_badge, :weather_latitude)
+    config_lon = Application.get_env(:name_badge, :weather_longitude)
+    config_name = Application.get_env(:name_badge, :weather_location_name)
+
+    lat = parse_coordinate(env_lat) || config_lat
+    lon = parse_coordinate(env_lon) || config_lon
+    explicit_name = env_name || config_name
+
+    if lat && lon do
+      location_name = explicit_name || reverse_geocode(lat, lon) || "Configured Location"
+      Logger.info("Using configured location: #{lat}, #{lon} (#{location_name})")
+      {:ok, lat, lon, location_name}
+    else
+      :not_configured
+    end
+  end
+
+  defp parse_coordinate(nil), do: nil
+  defp parse_coordinate(value) when is_binary(value) do
+    case Float.parse(value) do
+      {float, _} -> float
+      :error -> nil
+    end
+  end
+
+  defp reverse_geocode(lat, lon) do
+    Logger.debug("Reverse geocoding coordinates: #{lat}, #{lon}")
+
+    params = [
+      lat: lat,
+      lon: lon,
+      format: "json",
+      zoom: 10
+    ]
+
+    headers = [{"user-agent", "NameBadge/1.0"}]
+
+    case Req.get(@nominatim_url, params: params, headers: headers, receive_timeout: 5_000) do
+      {:ok, %{status: 200, body: %{"address" => address}}} ->
+        city = address["city"] || address["town"] || address["village"] || address["municipality"]
+        country = address["country"]
+
+        case {city, country} do
+          {nil, nil} -> nil
+          {nil, country} -> country
+          {city, nil} -> city
+          {city, country} -> "#{city}, #{country}"
+        end
+
+      {:ok, response} ->
+        Logger.warning("Unexpected response from Nominatim: #{inspect(response)}")
+        nil
+
+      {:error, reason} ->
+        Logger.warning("Reverse geocoding failed: #{inspect(reason)}")
+        nil
+    end
+  end
+
+  defp get_location_from_ip do
     Logger.info("Detecting location via IP geolocation...")
 
     request_options = [
