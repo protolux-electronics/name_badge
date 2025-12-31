@@ -16,15 +16,6 @@ to load a firmware on your device. For those without the hardware, you can still
 join in on the fun by using the simulator to create new screens. See more
 information about the simulator below
 
-
-### Install Erlang/Elixir
-
-Recommended way to install Erlang/Elixir is with `mise` (https://mise.jdx.dev/getting-started.html). With the provided `mise.toml` file, you can install the required versions of Erlang and Elixir by running `mise install`.
-
-### Install Nerves
-
-Nerves is a framework for building embedded systems with Elixir. It provides a set of tools and libraries to help you develop, build, and deploy your firmware. To install Nerves, follow the instructions on the official website: https://hexdocs.pm/nerves/installation.html
-
 ### Uploading pre-built firmware
 
 If you have a device, it should already have usable firmware on it. That means,
@@ -59,6 +50,22 @@ device. For advanced topics, please see the guides below:
 - [Flashing a firmware file via FEL](guides/flashing-via-fel.md)
 - [Build custom firmware](guides/build-custom-firmware.md)
 - [Create your first screen](guides/custom-screen.md)
+
+Building firmware from source requires several dependencies:
+
+### Install Erlang/Elixir
+
+Recommended way to install Erlang/Elixir is with
+[`mise`](https://mise.jdx.dev/getting-started.html). After installing `mise`,
+install the required versions of Erlang and Elixir by running `mise install`.
+
+### Install Nerves
+
+Nerves is a framework for building embedded systems with Elixir. It provides a
+set of tools and libraries to help you develop, build, and deploy your firmware.
+To install Nerves, follow the instructions in the docs:
+
+https://hexdocs.pm/nerves/installation.html
 
 ## Simulator
 

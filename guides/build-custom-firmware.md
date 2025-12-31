@@ -1,7 +1,10 @@
 # Build Custom Firmware
 
 This project uses Elixir version 1.18.3 and OTP 27.3.4. Please install these
-versions before proceeding.
+versions before proceeding. The recommended way to do this is via
+[mise](https://mise.jdx.dev/getting-started.html) or `asdf`. After installing
+`mise`, you can run `mise install` in the root directory of this repo to install
+the required Elixir and Erlang versions.
 
 To build a firmware from source, you also need to
 [install Nerves](https://hexdocs.pm/nerves/installation.html), following the
