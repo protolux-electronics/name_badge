@@ -3,12 +3,17 @@ defmodule NameBadge.Screen.NameBadge do
 
   require Logger
 
+  @font_name "New Amsterdam"
+  @greeting_size_default 24
+  @name_size_default 36
+  @company_size_default 24
+
   @impl NameBadge.Screen
   def render(%{valid?: false}) do
     """
     #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-    = Error 
+    = Error
 
     Your name badge is not configured. Please connect to WiFi, then personalize
     your device via QR code.
@@ -24,7 +29,7 @@ defmodule NameBadge.Screen.NameBadge do
           ""
 
         greeting when is_binary(greeting) ->
-          "text(font: \"New Amsterdam\", size: #{config["greeting_size"] || 24}pt)[#{greeting}],"
+          "text(font: \"#{@font_name}\", size: #{config["greeting_size"] || @greeting_size_default}pt)[#{greeting}],"
       end
 
     company_element =
@@ -33,7 +38,7 @@ defmodule NameBadge.Screen.NameBadge do
           ""
 
         company when is_binary(company) ->
-          "text(font: \"New Amsterdam\", size: #{config["company_size"] || 24}pt)[#{company}],"
+          "text(font: \"#{@font_name}\", size: #{config["company_size"] || @company_size_default}pt)[#{company}],"
       end
 
     """
@@ -41,7 +46,7 @@ defmodule NameBadge.Screen.NameBadge do
       stack(dir: ttb, spacing: #{config["spacing"] || 8}pt,
 
         #{greeting_element}
-        text(font: "New Amsterdam", size: #{config["name_size"] || 36}pt, "#{config["first_name"]} #{config["last_name"]}"),
+        text(font: "#{@font_name}", size: #{config["name_size"] || @name_size_default}pt, "#{config["first_name"]} #{config["last_name"]}"),
         #{company_element}
       )
     );
