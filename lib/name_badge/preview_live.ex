@@ -30,7 +30,7 @@ if Mix.target() == :host do
         body {
           font-family: "Helvetica";
           margin: 0;
-          padding: 0;
+          padding: 2rem;
           background: #f5f5f5;
           display: flex;
           justify-content: center;
