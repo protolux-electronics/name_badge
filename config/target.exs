@@ -1,10 +1,5 @@
 import Config
 
-
-config :name_badge,
-       :base_url,
-       System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
-
 # Use Ringlogger as the logger backend and remove :console.
 # See https://hexdocs.pm/ring_logger/readme.html for more information on
 # configuring ring_logger.

@@ -19,8 +19,3 @@ config :nerves_runtime,
        "a.nerves_fw_platform" => "host",
        "a.nerves_fw_version" => "0.0.0"
      }}
-
-config :name_badge,
-       :base_url,
-       System.get_env("BASE_URL", "http://localhost:4000") || raise("environment variable `BASE_URL` was not set")
-
