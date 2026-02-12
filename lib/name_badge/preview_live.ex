@@ -30,17 +30,30 @@ if Mix.target() == :host do
         body {
           font-family: "Helvetica";
           margin: 0;
-          padding: 2rem;
+          padding: 0;
           background: #f5f5f5;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
         }
         .container {
           display: flex;
           flex-direction: column;
           align-items: center;
+          width: 100%;
+          padding: 0;
+          box-sizing: border-box;
         }
         .frame-image {
           border: 1px solid #ddd;
           border-radius: 4px;
+          width: 95vw;
+          height: auto;
+          max-width: 1200px;
+          max-height: 80vh;
+          object-fit: contain;
+          image-rendering: pixelated;
         }
         .controls {
           display: flex;

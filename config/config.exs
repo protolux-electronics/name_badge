@@ -23,9 +23,6 @@ config :nerves, :firmware,
 
 config :nerves, source_date_epoch: "1753482945"
 
-config :name_badge,
-       :base_url,
-       System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
 if Mix.target() == :host do
   import_config "host.exs"
