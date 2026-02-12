@@ -25,7 +25,7 @@ config :nerves, source_date_epoch: "1753482945"
 
 config :name_badge,
        :device_setup_url,
-       System.get_env("DEVICE_SETUP_URL", "https://goatmire.fly.dev/")
+       System.get_env("DEVICE_SETUP_URL", "goatmire.fly.dev")
 
 if Mix.target() == :host do
   import_config "host.exs"
