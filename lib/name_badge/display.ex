@@ -20,7 +20,7 @@ defmodule NameBadge.Display do
   @impl GenServer
   def init(_opts) do
     {:ok, eink} =
-      EInk.new(EInk.Driver.UC8276,
+      EInk.new(EInk.Driver.UC8179,
         dc_pin: "EPD_DC",
         reset_pin: "EPD_RESET",
         busy_pin: "EPD_BUSY",

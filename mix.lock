@@ -8,7 +8,7 @@
   "circuits_spi": {:hex, :circuits_spi, "2.0.4", "b75f64c0401e3c64319dcfc76a9bc17466e4469adc5daf34165f4c4b11cf12ee", [:make, :mix], [{:elixir_make, "~> 0.6", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm", "ccf034065091f26c624dee777ea3f48ce64696af812622e1d060b2cffdbf90e4"},
   "circular_buffer": {:hex, :circular_buffer, "0.4.2", "b088989532af3d1733d35a08933ec9a232a56d0f06a078739f05fe24965d91d2", [:mix], [], "hexpm", "bc5f4ba112bce88aa4692427a8b23aa5baddf7c810d5dc3e7696f398194f104e"},
   "dither": {:hex, :dither, "0.1.1", "1d3bb11c043427e0c5f5828ef324e9aac6d295ad4eb9b6e1cd6d8521947142d0", [:mix], [{:rustler, "~> 0.36.2", [hex: :rustler, repo: "hexpm", optional: true]}, {:rustler_precompiled, "~> 0.8", [hex: :rustler_precompiled, repo: "hexpm", optional: false]}], "hexpm", "3f8f21275e8e8bf2b5f65f272b647d9dd630d19b0d03006c8c948d8c993d63f0"},
-  "eink": {:git, "https://github.com/protolux-electronics/eink.git", "dfd91ce269043c5f913f336d2fe5067c2c137d74", []},
+  "eink": {:git, "https://github.com/protolux-electronics/eink.git", "2304b0ce685a1a12e1a2d3a4ea2e257843d6370e", []},
   "elixir_make": {:hex, :elixir_make, "0.9.0", "6484b3cd8c0cee58f09f05ecaf1a140a8c97670671a6a0e7ab4dc326c3109726", [:mix], [], "hexpm", "db23d4fd8b757462ad02f8aa73431a426fe6671c80b200d9710caf3d1dd0ffdb"},
   "ex_maybe": {:hex, :ex_maybe, "1.1.1", "95c0188191b43bd278e876ae4f0a688922e3ca016a9efd97ee7a0b741a61b899", [:mix], [], "hexpm", "1af8c78c915c7f119a513b300a1702fc5cc9fed42d54fd85995265e4c4b763d2"},
   "extty": {:hex, :extty, "0.4.2", "a180d018cefe6df319859f160b7c94fd7c8119186f9e7b9f18952496dd3ca4d1", [:mix], [], "hexpm", "6d220e5655f293d8e7acb023b3d7ffffb3f294cc2762c3357036ac9459bb6d69"},

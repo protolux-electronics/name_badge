@@ -2,8 +2,8 @@ defmodule NameBadge.Layout do
   @wlan0_property ["interface", "wlan0", "connection"]
 
   def root_layout(content, opts \\ []) do
-    width = Keyword.get(opts, :width, 400)
-    height = Keyword.get(opts, :height, 300)
+    width = Keyword.get(opts, :width, 648)
+    height = Keyword.get(opts, :height, 480)
     margin = Keyword.get(opts, :margin, 32)
 
     """
