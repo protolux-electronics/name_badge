@@ -20,65 +20,45 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
   defp render_firmware(assigns) do
     """
     #set text(size: 18pt)
-    #show heading: set text(font: "Silkscreen", size: 28pt, weight: 400, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-    = System Info
+    = Firmware Info
 
-    == Firmware (1/3)
+    Active Partition: #{assigns.version.active}
 
-    #v(12pt)
+    Partition A:
+    - Version: #{assigns.version.a}
+    - UUID: #{assigns.version.a_uuid |> String.slice(0..18)}...
 
-    *Firmware:* #{assigns.version}
-
-    #v(12pt)
-
-    *Elixir:* #{assigns.elixir_version}
-
-    #v(12pt)
-
-    *OTP:* #{assigns.otp_version}
+    Partition B:
+    - Version: #{assigns.version.b} 
+    - UUID: #{assigns.version.b_uuid |> String.slice(0..18)}...
     """
   end
 
   defp render_network(assigns) do
     """
     #set text(size: 18pt)
-    #show heading: set text(font: "Silkscreen", size: 28pt, weight: 400, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-    = System Info
+    = Network Info
 
-    == Network (2/3)
-
-    #v(12pt)
-
-    *WiFi:* #{assigns.wifi_ssid}
-
-    #v(12pt)
-
-    *WiFi IP:* #{assigns.wifi_ip}
-
-    #v(12pt)
-
-    *USB IP:* #{assigns.usb_ip}
+    - WiFi SSID: #{assigns.wifi_ssid}
+    - WiFi IP: #{assigns.wifi_ip}
+    - USB IP: #{assigns.usb_ip}
     """
   end
 
   defp render_battery(assigns) do
     """
     #set text(size: 18pt)
-    #show heading: set text(font: "Silkscreen", size: 28pt, weight: 400, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
 
-    = System Info
+    = Power Info
 
-    == Battery (3/3)
-
-    #v(12pt)
-
-    *Battery:* #{assigns.battery_percentage}%
-
-    #v(12pt)
-
-    *Status:* #{assigns.charging_status}
+    - Battery: #{assigns.battery_percentage}%
+    - Voltage: 4.5V
+    - Status: #{assigns.charging_status}
     """
   end
 
@@ -87,11 +67,11 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
     version = get_version()
     elixir_version = System.version()
     otp_version = System.otp_release()
-    
+
     wifi_ssid = get_wifi_ssid()
     wifi_ip = get_wifi_ip()
     usb_ip = get_usb_ip()
-    
+
     {battery_percentage, charging_status} = get_battery_info()
 
     screen =
@@ -134,10 +114,25 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
     {:noreply, screen}
   end
 
-  defp get_version do
-    case Application.spec(:name_badge, :vsn) do
-      vsn when is_list(vsn) -> List.to_string(vsn)
-      _ -> "Unknown"
+  if Mix.target() == :host do
+    defp get_version do
+      %{
+        active: "A",
+        a: "1.2.3",
+        a_uuid: "MOCKED-e29b-41d4-a716-446655440000",
+        b: "1.2.4",
+        b_uuid: "MOCKED-e29b-41d4-a716-446655440000"
+      }
+    end
+  else
+    def get_version do
+      %{
+        active: Nerves.Runtime.KV.get("nerves_fw_active") |> String.upcase(),
+        a: Nerves.Runtime.KV.get("a.nerves_fw_version"),
+        a_uuid: Nerves.Runtime.KV.get("a.nerves_fw_uuid"),
+        b: Nerves.Runtime.KV.get("b.nerves_fw_version"),
+        b_uuid: Nerves.Runtime.KV.get("b.nerves_fw_uuid")
+      }
     end
   end
 
