@@ -11,6 +11,21 @@ defmodule NameBadge.Battery do
     voltage() > 4.5
   end
 
+  def percentage() do
+    # Convert voltage to battery percentage
+    # Typical Li-ion battery range: 3.0V (0%) to 4.2V (100%)
+    v = voltage()
+    min_voltage = 3.0
+    max_voltage = 4.2
+
+    percentage = ((v - min_voltage) / (max_voltage - min_voltage) * 100)
+    |> max(0)
+    |> min(100)
+    |> round()
+
+    percentage
+  end
+
   @impl true
   def init(opts) do
     interval = Keyword.get(opts, :interval, 500)
