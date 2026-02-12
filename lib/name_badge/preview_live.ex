@@ -53,7 +53,6 @@ if Mix.target() == :host do
           max-width: 1200px;
           max-height: 80vh;
           object-fit: contain;
-          image-rendering: pixelated;
         }
         .controls {
           display: flex;
