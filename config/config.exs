@@ -39,13 +39,16 @@ config :name_badge,
 # Set CALENDAR_URL to your Google Calendar secret iCal address before building.
 # Set CALENDAR_REFRESH_INTERVAL to customize the refresh interval in milliseconds (default: 5 min).
 # If CALENDAR_URL is not set, the calendar feature is entirely disabled.
-calendar_url = System.get_env("CALENDAR_URL")
+calendar_url =
+  System.get_env("CALENDAR_URL", "http://pirate.monkeyness.com/calendars/Moons-Seasons.ics")
 
 if calendar_url do
   config :name_badge, :calendar,
     url: calendar_url,
     refresh_interval:
-      String.to_integer(System.get_env("CALENDAR_REFRESH_INTERVAL") || "300000")
+      (System.get_env("CALENDAR_REFRESH_INTERVAL") || "30")
+      |> String.to_integer()
+      |> :timer.minutes()
 end
 
 if Mix.target() == :host do

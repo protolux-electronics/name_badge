@@ -111,25 +111,32 @@ defmodule NameBadge.Screen.Calendar do
     event_rows =
       if Enum.empty?(day_events) do
         """
-        text(size: 16pt, style: "italic")[No events]
+        #text(size: 16pt, style: "italic")[No events]
         """
       else
-        day_events
-        |> Enum.take(6)
-        |> Enum.map_join(",\n", fn evt ->
-          start_time = format_time(evt.dtstart)
-          end_time = format_time(evt.dtend)
-          summary = escape_typst(evt.summary)
-          is_now = is_today and event_is_now?(evt, now)
-          weight = if is_now, do: "700", else: "400"
+        table_rows =
+          day_events
+          |> Enum.take(6)
+          |> Enum.flat_map(fn evt ->
+            start_time = format_time(evt.dtstart)
+            end_time = if evt.dtend, do: format_time(evt.dtend), else: ""
+            summary = escape_typst(evt.summary)
+            is_now = is_today and event_is_now?(evt, now)
+            weight = if is_now, do: "700", else: "400"
 
-          """
-          stack(dir: ltr, spacing: 6pt,
-            text(size: 12pt, weight: #{weight})[#{start_time}-#{end_time}],
-            text(size: 12pt, weight: #{weight})[#{truncate(summary, 30)}]
-          )
-          """
-        end)
+            [
+              "text(size: 16pt, weight: #{weight})[#{start_time}]",
+              "text(size: 16pt, weight: #{weight})[#{end_time}]",
+              "text(size: 16pt, weight: #{weight})[#{truncate(summary, 30)}]"
+            ]
+          end)
+          |> Enum.join(", ")
+
+        """
+        #set text(size: 16pt)
+
+        #table(columns: (auto, auto, 1fr), align: left, inset: 6pt, stroke: none, "Start", "End", "Description", #{table_rows})
+        """
       end
 
     """
@@ -142,9 +149,7 @@ defmodule NameBadge.Screen.Calendar do
     #align(center)[
       #text(size: 18pt, weight: 600)[#{day_label}#{today_marker}]
 
-      #stack(dir: ttb, spacing: 10pt,
-        #{event_rows}
-      )
+      #{event_rows}
     ]
     """
   end
