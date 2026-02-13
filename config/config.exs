@@ -27,6 +27,14 @@ config :name_badge,
        :base_url,
        System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
+# Optional: Weather location configuration
+# If not set, location will be determined via IP geolocation
+# Environment variables WEATHER_LATITUDE and WEATHER_LONGITUDE take precedence
+# config :name_badge, :weather,
+#   latitude: 53.56176317072124,
+#   longitude: 9.985888668967176,
+#   name: nil
+
 if Mix.target() == :host do
   import_config "host.exs"
 else
