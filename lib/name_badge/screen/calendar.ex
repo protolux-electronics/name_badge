@@ -200,13 +200,13 @@ defmodule NameBadge.Screen.Calendar do
 
     #align(center)[
       #text(size: 14pt, weight: 600)[#{week_label}]
-
-      #v(6pt)
-
-      #stack(dir: ttb, spacing: 8pt,
-        #{day_rows}
-      )
     ]
+
+    #v(6pt)
+
+    #stack(dir: ttb, spacing: 8pt,
+      #{day_rows}
+    )
 
     #place(bottom + right, dy: 20pt, dx: 28pt,
       text(size: 10pt, fill: gray)[#{@view_labels[:week]}]
