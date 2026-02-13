@@ -13,7 +13,6 @@ defmodule NameBadge.Screen.Calendar do
   require Logger
 
   @views [:day, :week, :month]
-  @view_labels %{day: "Day", week: "Week", month: "Month"}
   @timezone "Etc/UTC"
 
   # ── Callbacks ───────────────────────────────────────────────────────────
@@ -36,7 +35,7 @@ defmodule NameBadge.Screen.Calendar do
       |> assign(button_hints: %{a: "Next", b: "Prev"})
 
     # Refresh the cached events and current time every minute
-    Process.send_after(self(), :tick, 60_000)
+    Process.send_after(self(), :tick, :timer.minutes(1))
 
     {:ok, screen}
   end
@@ -52,12 +51,14 @@ defmodule NameBadge.Screen.Calendar do
 
   def handle_button(:button_1, :single_press, screen) do
     # Navigate forward by one period
-    {:noreply, assign(screen, selected_date: advance(screen.assigns.selected_date, screen.assigns.view, 1))}
+    {:noreply,
+     assign(screen, selected_date: advance(screen.assigns.selected_date, screen.assigns.view, 1))}
   end
 
   def handle_button(:button_2, :single_press, screen) do
     # Navigate backward by one period
-    {:noreply, assign(screen, selected_date: advance(screen.assigns.selected_date, screen.assigns.view, -1))}
+    {:noreply,
+     assign(screen, selected_date: advance(screen.assigns.selected_date, screen.assigns.view, -1))}
   end
 
   def handle_button(_, _, screen), do: {:noreply, screen}
@@ -66,7 +67,7 @@ defmodule NameBadge.Screen.Calendar do
   def handle_info(:tick, screen) do
     now = DateTime.now!(@timezone)
     events = NameBadge.CalendarService.get_events()
-    Process.send_after(self(), :tick, 60_000)
+    Process.send_after(self(), :tick, :timer.minutes(1))
 
     {:noreply, assign(screen, now: now, today: DateTime.to_date(now), events: events)}
   end
@@ -139,18 +140,12 @@ defmodule NameBadge.Screen.Calendar do
     #v(4pt)
 
     #align(center)[
-      #text(size: 14pt, weight: 600)[#{day_label}#{today_marker}]
-
-      #v(8pt)
+      #text(size: 18pt, weight: 600)[#{day_label}#{today_marker}]
 
       #stack(dir: ttb, spacing: 10pt,
         #{event_rows}
       )
     ]
-
-    #place(bottom + right, dy: 20pt, dx: 28pt,
-      text(size: 10pt, fill: gray)[#{@view_labels[:day]}]
-    )
     """
   end
 
@@ -168,14 +163,14 @@ defmodule NameBadge.Screen.Calendar do
 
     day_rows =
       days
-      |> Enum.map_join(",\n", fn date ->
+      |> Enum.flat_map(fn date ->
         day_events = events_on_date(events, date)
         day_name = Calendar.strftime(date, "%a %d")
         count = length(day_events)
 
         first_event =
           case day_events do
-            [evt | _] -> truncate(escape_typst(evt.summary), 22)
+            [evt | _] -> truncate(escape_typst(evt.summary), 36)
             [] -> "---"
           end
 
@@ -183,13 +178,12 @@ defmodule NameBadge.Screen.Calendar do
         is_today = Date.compare(date, today) == :eq
         weight = if is_today, do: "700", else: "400"
 
-        """
-        stack(dir: ltr, spacing: 6pt,
-          text(size: 12pt, weight: #{weight})[#{day_name}],
-          text(size: 11pt, weight: #{weight})[#{first_event}#{suffix}]
-        )
-        """
+        [
+          "[#text(size: 14pt, weight: #{weight})[#{day_name}]]",
+          "[#text(size: 14pt, weight: #{weight})[#{first_event} #{suffix}]]"
+        ]
       end)
+      |> Enum.join(", ")
 
     """
     #show heading: set text(font: "Silkscreen", size: 28pt, weight: 400, tracking: -4pt)
@@ -199,18 +193,12 @@ defmodule NameBadge.Screen.Calendar do
     #v(4pt)
 
     #align(center)[
-      #text(size: 14pt, weight: 600)[#{week_label}]
+      #text(size: 18pt, weight: 600)[#{week_label}]
     ]
 
-    #v(6pt)
+    #v(-8pt)
 
-    #stack(dir: ttb, spacing: 8pt,
-      #{day_rows}
-    )
-
-    #place(bottom + right, dy: 20pt, dx: 28pt,
-      text(size: 10pt, fill: gray)[#{@view_labels[:week]}]
-    )
+    #table(columns: (auto, 1fr), inset: 6pt, stroke: none, #{day_rows})
     """
   end
 
@@ -219,6 +207,7 @@ defmodule NameBadge.Screen.Calendar do
   defp render_month(%{events: events, selected_date: selected_date, today: today}) do
     year = selected_date.year
     month = selected_date.month
+
     month_label =
       Calendar.strftime(Date.new!(year, month, 1), "%B %Y")
 
@@ -247,26 +236,26 @@ defmodule NameBadge.Screen.Calendar do
       cells
       |> Enum.map_join(",\n", fn {day_num, is_current_month, is_today, has_events} ->
         fill = if is_today, do: "black", else: "white"
-        text_fill = if is_today, do: "white", else: if(is_current_month, do: "black", else: "gray")
+
+        text_fill =
+          if is_today, do: "white", else: if(is_current_month, do: "black", else: "gray")
+
         day_str = Integer.to_string(day_num)
 
         dot =
-          if has_events and not is_today do
-            "circle(radius: 2pt, fill: black)"
-          else
-            if has_events and is_today do
-              "circle(radius: 2pt, fill: white)"
-            else
-              "v(4pt)"
-            end
+          cond do
+            not is_current_month -> ""
+            has_events and not is_today -> "#circle(radius: 2pt, fill: black)"
+            has_events and is_today -> "#circle(radius: 2pt, fill: white)"
+            true -> ""
           end
 
         """
-        box(width: 36pt, height: 24pt, fill: #{fill}, stroke: 0.5pt + gray, inset: 1pt)[
-          #set align(center)
-          #text(size: 10pt, fill: #{text_fill})[#{day_str}]
-          #v(1pt)
-          ##{dot}
+        box(width: 40pt, height: 30pt, fill: #{fill}, stroke: 0.5pt + gray, inset: 1pt)[
+          #set align(center + top)
+          #text(size: 12pt, fill: #{text_fill})[#{day_str}]
+          #v(-18pt)
+          #{dot}
         ]
         """
       end)
@@ -275,36 +264,30 @@ defmodule NameBadge.Screen.Calendar do
       ~w(Mo Tu We Th Fr Sa Su)
       |> Enum.map_join(",\n", fn label ->
         """
-        box(width: 36pt, height: 12pt)[
-          #set align(center)
-          #text(size: 8pt, weight: 700)[#{label}]
+        box(width: 40pt, height: 16pt)[
+          #set align(center + top)
+          #text(size: 12pt, weight: 700)[#{label}]
         ]
         """
       end)
 
     """
-    #show heading: set text(font: "Silkscreen", size: 20pt, weight: 400, tracking: -4pt)
+    #show heading: set text(font: "Silkscreen", size: 28pt, weight: 400, tracking: -4pt)
 
     = Calendar
 
-    #v(1pt)
+    #v(4pt)
 
     #align(center)[
-      #text(size: 11pt, weight: 600)[#{month_label}]
-
-      #v(2pt)
-
+      #text(size: 18pt, weight: 600)[#{month_label}]
+      #v(-8pt)
       #grid(
-        columns: (36pt,) * 7,
+        columns: (1fr,) * 7,
         gutter: 0pt,
         #{header_cells},
         #{cell_markup}
       )
     ]
-
-    #place(bottom + right, dy: 20pt, dx: 28pt,
-      text(size: 10pt, fill: gray)[#{@view_labels[:month]}]
-    )
     """
   end
 
@@ -353,7 +336,7 @@ defmodule NameBadge.Screen.Calendar do
   defp truncate(str, max_len) when byte_size(str) <= max_len, do: str
 
   defp truncate(str, max_len) do
-    String.slice(str, 0, max_len - 2) <> ".."
+    String.slice(str, 0, max_len - 2) <> "..."
   end
 
   defp escape_typst(nil), do: ""
