@@ -19,7 +19,8 @@ defmodule NameBadge.Weather do
   ]
 
   # Configuration
-  @update_interval :timer.minutes(10)  # Respect API rate limits
+  # Respect API rate limits
+  @update_interval :timer.minutes(10)
   @max_failures 3
   @circuit_breaker_timeout :timer.minutes(5)
   @call_timeout 5_000
@@ -45,6 +46,7 @@ defmodule NameBadge.Weather do
       :exit, {:timeout, _} ->
         Logger.warning("Weather service call timed out")
         nil
+
       :exit, {:noproc, _} ->
         Logger.warning("Weather service not available")
         nil
@@ -69,6 +71,7 @@ defmodule NameBadge.Weather do
       :exit, {:timeout, _} ->
         Logger.warning("Weather service location name call timed out")
         nil
+
       :exit, {:noproc, _} ->
         Logger.warning("Weather service not available for location name")
         nil
@@ -174,6 +177,7 @@ defmodule NameBadge.Weather do
     case fetch_weather(state.latitude, state.longitude) do
       {:ok, weather} ->
         Logger.debug("Weather updated successfully")
+
         %{
           state
           | weather_data: weather,
@@ -208,9 +212,11 @@ defmodule NameBadge.Weather do
     env_lon = System.get_env("WEATHER_LONGITUDE")
     env_name = System.get_env("WEATHER_LOCATION_NAME")
 
-    config_lat = Application.get_env(:name_badge, :weather_latitude)
-    config_lon = Application.get_env(:name_badge, :weather_longitude)
-    config_name = Application.get_env(:name_badge, :weather_location_name)
+    weather_config = Application.get_env(:name_badge, :weather)
+
+    config_lat = Keyword.get(weather_config, :latitude)
+    config_lon = Keyword.get(weather_config, :longitude)
+    config_name = Keyword.get(weather_config, :name)
 
     lat = parse_coordinate(env_lat) || config_lat
     lon = parse_coordinate(env_lon) || config_lon
@@ -226,6 +232,7 @@ defmodule NameBadge.Weather do
   end
 
   defp parse_coordinate(nil), do: nil
+
   defp parse_coordinate(value) when is_binary(value) do
     case Float.parse(value) do
       {float, _} -> float
@@ -278,7 +285,11 @@ defmodule NameBadge.Weather do
     ]
 
     case Req.get(@ip_geolocation_url, request_options) do
-      {:ok, %Req.Response{status: 200, body: %{"lat" => lat, "lon" => lon, "city" => city, "country" => country}}} ->
+      {:ok,
+       %Req.Response{
+         status: 200,
+         body: %{"lat" => lat, "lon" => lon, "city" => city, "country" => country}
+       }} ->
         location_name = "#{city}, #{country}"
         {:ok, lat, lon, location_name}
 

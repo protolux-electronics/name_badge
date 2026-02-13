@@ -30,9 +30,10 @@ config :name_badge,
 # Optional: Weather location configuration
 # If not set, location will be determined via IP geolocation
 # Environment variables WEATHER_LATITUDE and WEATHER_LONGITUDE take precedence
-config :name_badge, :weather_latitude, 53.56176317072124
-config :name_badge, :weather_longitude, 9.985888668967176
-config :name_badge, :weather_location_name, nil
+config :name_badge, :weather,
+  latitude: 53.56176317072124,
+  longitude: 9.985888668967176,
+  name: nil
 
 if Mix.target() == :host do
   import_config "host.exs"

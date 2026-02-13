@@ -56,7 +56,7 @@ defmodule NameBadge.Screen.Weather do
         text(size: 16pt, style: "italic")[#{location || "Unknown Location"}],
 
         // Temperature (main display)
-        text(size: 48pt, font: "New Amsterdam")[#{temp_display}],
+        text(size: 48pt, weight: 600)[#{temp_display}],
 
         // Weather condition
         text(size: 18pt)[#{condition}],
@@ -125,7 +125,12 @@ defmodule NameBadge.Screen.Weather do
     screen =
       case weather do
         nil ->
-          assign(screen, weather: nil, loading: false, error: "Unable to fetch weather data", location: location)
+          assign(screen,
+            weather: nil,
+            loading: false,
+            error: "Unable to fetch weather data",
+            location: location
+          )
 
         weather_data ->
           assign(screen, weather: weather_data, loading: false, error: nil, location: location)
@@ -139,11 +144,13 @@ defmodule NameBadge.Screen.Weather do
   defp format_temperature(temp) when is_number(temp) do
     "#{round(temp)}°C"
   end
+
   defp format_temperature(_), do: "N/A"
 
   defp format_wind_speed(speed) when is_number(speed) do
     "#{round(speed)} m/s"
   end
+
   defp format_wind_speed(_), do: "N/A"
 
   defp format_last_updated(timestamp) when is_binary(timestamp) do
@@ -158,9 +165,11 @@ defmodule NameBadge.Screen.Weather do
           true -> "#{div(diff_minutes, 60)}h ago"
         end
 
-      _ -> "Recently"
+      _ ->
+        "Recently"
     end
   end
+
   defp format_last_updated(_), do: "Recently"
 
   defp weather_condition_text(code, is_day) when is_number(code) do
@@ -196,8 +205,8 @@ defmodule NameBadge.Screen.Weather do
       _ -> if is_day, do: "Unknown (day)", else: "Unknown (night)"
     end
   end
+
   defp weather_condition_text(_, is_day) do
     if is_day, do: "Unknown (day)", else: "Unknown (night)"
   end
-
 end
