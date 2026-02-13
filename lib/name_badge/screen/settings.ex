@@ -7,7 +7,8 @@ defmodule NameBadge.Screen.Settings do
     {"Personalization", Settings.QrCode},
     {"WiFi Settings", Settings.WiFi},
     {"Tutorial", Settings.Tutorial},
-    {"Sudo Mode", Settings.SudoMode}
+    {"Sudo Mode", Settings.SudoMode},
+    {"System Info", Settings.SystemInfo}
   ]
 
   @impl NameBadge.Screen
