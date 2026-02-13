@@ -30,6 +30,18 @@ if Mix.target() != :host do
 
     @impl PowerManager
     def start_powering_off(state) do
+      case wifi_module() do
+        {:ok, "rtl8xxxu"} ->
+          pull_up(state)
+
+        {:ok, "rtw_8723du"} ->
+          pull_down(state)
+
+        _error ->
+          pull_up(state)
+          Logger.warning("NameBadge.Wifi error: no supported wifi modules found")
+      end
+
       {:ok, state, :timer.seconds(2)}
     end
 
