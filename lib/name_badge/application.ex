@@ -32,6 +32,7 @@ defmodule NameBadge.Application do
       {Phoenix.PubSub, name: NameBadge.PubSub},
       NameBadge.DisplayMock,
       NameBadge.BatteryMock,
+      NameBadge.Weather,
       NameBadge.ScreenManager,
       {PhoenixPlayground, live: NameBadge.PreviewLive}
     ] ++ calendar_children()
@@ -43,6 +44,7 @@ defmodule NameBadge.Application do
       button_spec(:button_2),
       NameBadge.Battery,
       NameBadge.Display,
+      NameBadge.Weather,
       NameBadge.ScreenManager
     ] ++ calendar_children()
   end

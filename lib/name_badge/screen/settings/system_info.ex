@@ -56,9 +56,9 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
 
     = Power Info
 
-    - Battery: #{assigns.battery_percentage}%
-    - Voltage: 4.5V
-    - Status: #{assigns.charging_status}
+    - Battery: #{assigns.battery.percentage}%
+    - Voltage: #{assigns.battery.voltage}V
+    - Status: #{assigns.battery.charging_status}
     """
   end
 
@@ -72,7 +72,7 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
     wifi_ip = get_wifi_ip()
     usb_ip = get_usb_ip()
 
-    {battery_percentage, charging_status} = get_battery_info()
+    battery_info = get_battery_info()
 
     screen =
       screen
@@ -84,8 +84,7 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
       |> assign(wifi_ssid: wifi_ssid)
       |> assign(wifi_ip: wifi_ip)
       |> assign(usb_ip: usb_ip)
-      |> assign(battery_percentage: battery_percentage)
-      |> assign(charging_status: charging_status)
+      |> assign(battery: battery_info)
 
     {:ok, screen}
   end
@@ -154,7 +153,12 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
   defp get_battery_info do
     percentage = NameBadge.Battery.percentage()
     charging = NameBadge.Battery.charging?()
-    {percentage, format_charging_status(charging)}
+
+    voltage =
+      NameBadge.Battery.voltage()
+      |> Float.round(2)
+
+    %{percentage: percentage, charging_status: format_charging_status(charging), voltage: voltage}
   end
 
   defp format_charging_status(true), do: "Charging"

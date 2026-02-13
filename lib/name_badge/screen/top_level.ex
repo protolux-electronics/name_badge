@@ -7,6 +7,7 @@ defmodule NameBadge.Screen.TopLevel do
     {Screen.NameBadge, "Name Badge"},
     {Screen.Gallery, "Gallery"},
     {Screen.Snake, "Snake"},
+    {Screen.Weather, "Weather"},
     {Screen.Settings, "Device Settings"}
   ]
 
