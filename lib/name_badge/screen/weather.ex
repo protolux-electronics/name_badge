@@ -16,7 +16,13 @@ defmodule NameBadge.Screen.Weather do
 
     #v(16pt)
 
-    #place(center + horizon, text(size: 24pt)[Loading weather data...])
+    #align(center + horizon)[
+      #text(size: 24pt)[Loading weather data...]
+      
+      #text(size: 12pt)[
+        Thanks to Tim Pritlove for contributing this screen!
+      ]
+    ]
     """
   end
 
