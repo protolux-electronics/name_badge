@@ -171,12 +171,12 @@ badge will function normally without any calendar-related overhead.
 
 ### Screen controls
 
-| Button | Action |
-| ------ | ------ |
-| A (single press) | Next day / week / month (depending on current view) |
+| Button           | Action                                                  |
+| ---------------- | ------------------------------------------------------- |
+| A (single press) | Next day / week / month (depending on current view)     |
 | B (single press) | Previous day / week / month (depending on current view) |
-| A (long press) | Cycle views: Day -> Week -> Month |
-| B (long press) | Navigate back to main menu |
+| A (long press)   | Cycle views: Day -> Week -> Month                       |
+| B (long press)   | Navigate back to main menu                              |
 
 ## Hardware Design
 
