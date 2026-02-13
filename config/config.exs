@@ -27,6 +27,27 @@ config :name_badge,
        :base_url,
        System.get_env("BASE_URL") || raise("environment variable `BASE_URL` was not set")
 
+# Optional: Weather location configuration
+# If not set, location will be determined via IP geolocation
+# Environment variables WEATHER_LATITUDE and WEATHER_LONGITUDE take precedence
+# config :name_badge, :weather,
+#   latitude: 53.56176317072124,
+#   longitude: 9.985888668967176,
+#   name: nil
+
+# Optional: Calendar sync via iCal secret address (read-only)
+# Set CALENDAR_URL to your Google Calendar secret iCal address before building.
+# Set CALENDAR_REFRESH_INTERVAL to customize the refresh interval in milliseconds (default: 5 min).
+# If CALENDAR_URL is not set, the calendar feature is entirely disabled.
+calendar_url = System.get_env("CALENDAR_URL")
+
+if calendar_url do
+  config :name_badge, :calendar,
+    url: calendar_url,
+    refresh_interval:
+      String.to_integer(System.get_env("CALENDAR_REFRESH_INTERVAL") || "300000")
+end
+
 if Mix.target() == :host do
   import_config "host.exs"
 else

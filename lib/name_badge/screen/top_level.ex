@@ -3,12 +3,21 @@ defmodule NameBadge.Screen.TopLevel do
 
   alias NameBadge.Screen
 
-  @screens [
+  @base_screens [
     {Screen.NameBadge, "Name Badge"},
     {Screen.Gallery, "Gallery"},
     {Screen.Snake, "Snake"},
     {Screen.Settings, "Device Settings"}
   ]
+
+  defp screens do
+    if NameBadge.CalendarService.enabled?() do
+      # Insert Calendar after Weather
+      List.insert_at(@base_screens, 4, {Screen.Calendar, "Calendar"})
+    else
+      @base_screens
+    end
+  end
 
   @impl NameBadge.Screen
   def render(assigns) do
@@ -23,7 +32,7 @@ defmodule NameBadge.Screen.TopLevel do
   def mount(_args, screen) do
     screen =
       screen
-      |> assign(screens: @screens, current_index: 0)
+      |> assign(screens: screens(), current_index: 0)
       |> assign(button_hints: %{a: "Next", b: "Select"})
 
     {:ok, screen}

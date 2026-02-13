@@ -123,6 +123,61 @@ The name badge runs snake! Here's a preview:
 
 Thanks Peter Ullrich for the contribution!
 
+## Calendar Sync (Google Calendar or any Calendar via iCal)
+
+The badge can display your Google Calendar events on an e-ink screen with three
+views: **Day**, **Week**, and **Month** (7x6 grid). Events are fetched from a
+read-only iCal secret address.
+
+### How to get your iCal URL in Google Calendar
+
+1. Go to [Google Calendar](https://calendar.google.com) on your computer.
+2. Click **Settings** (gear icon) > **Settings for my calendars**.
+3. Select the calendar you want to sync.
+4. Click **Integrate calendar**.
+5. Copy the **Secret address in iCal format**.
+
+> [!WARNING]
+> This URL grants read-only access to your calendar. Treat it like a password
+> and do not commit it to version control.
+
+### Building firmware with Calendar support
+
+Set the `CALENDAR_URL` environment variable before building the firmware:
+
+```sh
+CALENDAR_URL="https://calendar.google.com/calendar/ical/YOUR_SECRET_ADDRESS/basic.ics" \
+  MIX_TARGET=trellis mix firmware
+```
+
+Or for the simulator:
+
+```sh
+CALENDAR_URL="https://calendar.google.com/calendar/ical/YOUR_SECRET_ADDRESS/basic.ics" \
+  MIX_TARGET=host iex -S mix
+```
+
+You can also customize the refresh interval (default is 5 minutes / 300000 ms):
+
+```sh
+CALENDAR_URL="https://..." CALENDAR_REFRESH_INTERVAL="600000" MIX_TARGET=trellis mix firmware
+```
+
+### What happens if CALENDAR_URL is not set?
+
+The calendar feature is **entirely disabled**. The "Calendar" option will not
+appear in the main menu, the `CalendarService` process will not start, and the
+badge will function normally without any calendar-related overhead.
+
+### Screen controls
+
+| Button | Action |
+| ------ | ------ |
+| A (single press) | Next day / week / month (depending on current view) |
+| B (single press) | Previous day / week / month (depending on current view) |
+| A (long press) | Cycle views: Day -> Week -> Month |
+| B (long press) | Navigate back to main menu |
+
 ## Hardware Design
 
 The repo for the hardware design can be found
