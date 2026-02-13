@@ -47,10 +47,10 @@ defmodule NameBadge.Screen.Weather do
 
     = Weather
 
-    #v(8pt)
+    #v(16pt)
 
-    #place(center + horizon,
-      stack(dir: ttb, spacing: 12pt,
+    #align(center)[
+      #stack(dir: ttb, spacing: 14pt,
 
         // Location
         text(size: 16pt, style: "italic")[#{location || "Unknown Location"}],
@@ -67,7 +67,7 @@ defmodule NameBadge.Screen.Weather do
         // Last updated
         text(size: 12pt, fill: gray)[#{format_last_updated(weather.timestamp)}]
       )
-    )
+    ]
     """
   end
 
@@ -82,12 +82,12 @@ defmodule NameBadge.Screen.Weather do
         nil ->
           screen
           |> assign(weather: nil, loading: true, location: location)
-          |> assign(button_hints: %{a: "Refresh", b: "Back"})
+          |> assign(button_hints: %{a: "Refresh"})
 
         weather_data ->
           screen
           |> assign(weather: weather_data, loading: false, location: location)
-          |> assign(button_hints: %{a: "Refresh", b: "Back"})
+          |> assign(button_hints: %{a: "Refresh"})
       end
 
     {:ok, screen}

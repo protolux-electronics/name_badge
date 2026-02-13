@@ -212,7 +212,7 @@ defmodule NameBadge.Weather do
     env_lon = System.get_env("WEATHER_LONGITUDE")
     env_name = System.get_env("WEATHER_LOCATION_NAME")
 
-    weather_config = Application.get_env(:name_badge, :weather)
+    weather_config = Application.get_env(:name_badge, :weather, [])
 
     config_lat = Keyword.get(weather_config, :latitude)
     config_lon = Keyword.get(weather_config, :longitude)
