@@ -57,7 +57,7 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
     = Power Info
 
     - Battery: #{assigns.battery.percentage}%
-    - Voltage: #{assigns.battery.voltage}
+    - Voltage: #{assigns.battery.voltage}V
     - Status: #{assigns.battery.charging_status}
     """
   end
@@ -153,7 +153,10 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
   defp get_battery_info do
     percentage = NameBadge.Battery.percentage()
     charging = NameBadge.Battery.charging?()
-    voltage = NameBadge.Battery.voltage()
+
+    voltage =
+      NameBadge.Battery.voltage()
+      |> Float.round(2)
 
     %{percentage: percentage, charging_status: format_charging_status(charging), voltage: voltage}
   end
