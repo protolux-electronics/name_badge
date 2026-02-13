@@ -21,3 +21,6 @@ erl_crash.dump
 
 # secrets
 .mise.local.toml
+
+# ignore macOS files
+.DS_Store
