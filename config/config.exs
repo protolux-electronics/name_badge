@@ -35,6 +35,22 @@ config :name_badge,
 #   longitude: 9.985888668967176,
 #   name: nil
 
+# Optional: Calendar sync via iCal secret address (read-only)
+# Set CALENDAR_URL to your Google Calendar secret iCal address before building.
+# Set CALENDAR_REFRESH_INTERVAL to customize the refresh interval in milliseconds (default: 5 min).
+# If CALENDAR_URL is not set, the calendar feature is entirely disabled.
+calendar_url =
+  System.get_env("CALENDAR_URL", "http://pirate.monkeyness.com/calendars/Moons-Seasons.ics")
+
+if calendar_url do
+  config :name_badge, :calendar,
+    url: calendar_url,
+    refresh_interval:
+      (System.get_env("CALENDAR_REFRESH_INTERVAL") || "30")
+      |> String.to_integer()
+      |> :timer.minutes()
+end
+
 if Mix.target() == :host do
   import_config "host.exs"
 else
