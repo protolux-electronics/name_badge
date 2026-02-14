@@ -23,9 +23,11 @@ config :nerves, :firmware,
 
 config :nerves, source_date_epoch: "1753482945"
 
-config :name_badge,
-       :device_setup_url,
-       System.get_env("DEVICE_SETUP_URL", "goatmire.fly.dev")
+device_setup_url =
+  System.get_env("DEVICE_SETUP_URL") ||
+    raise "System environment variable `DEVICE_SETUP_URL` was not set. Use value `goatmire.fly.dev`, or set up your own server from the repo at https://github.com/protolux-electronics/goatmire"
+
+config :name_badge, :device_setup_url, device_setup_url
 
 # Optional: Weather location configuration
 # If not set, location will be determined via IP geolocation
