@@ -54,7 +54,7 @@ defmodule NameBadge.Screen.Settings.QrCode do
   end
 
   defp qr_code_for_token(token) do
-    url = "https://#{base_url()}/device/#{token}/config"
+    url = "https://#{device_setup_url()}/device/#{token}/config"
 
     {:ok, qr_code_svg} =
       url
@@ -66,7 +66,7 @@ defmodule NameBadge.Screen.Settings.QrCode do
     |> String.replace("\"", "\\\"")
   end
 
-  defp base_url(), do: Application.get_env(:name_badge, :base_url)
+  defp device_setup_url(), do: Application.get_env(:name_badge, :device_setup_url)
 
   defp generate_token do
     :crypto.strong_rand_bytes(16)

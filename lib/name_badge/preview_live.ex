@@ -14,72 +14,55 @@ if Mix.target() == :host do
 
     def render(assigns) do
       ~H"""
-      <div class="container">
-        <img src={@current_frame} class="frame-image"/>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ['Helvetica', 'Arial', 'sans-serif']
+              }
+            }
+          }
+        }
+      </script>
 
-        <div class="controls">
-          <button phx-click="button_1" phx-value-press_type="long_press" class="btn">A (Long)</button>
-          <button phx-click="button_1" phx-value-press_type="single_press" class="btn">A</button>
-          <button phx-click="button_2" phx-value-press_type="single_press" class="btn">B</button>
-          <button phx-click="button_2" phx-value-press_type="long_press" class="btn">B (Long)</button>
+      <div class="bg-gray-100 font-sans flex flex-col justify-center items-center min-h-screen w-full p-8">
+        <img 
+          src={@current_frame} 
+          class="border border-gray-300 rounded aspect-4/3 w-full sm:w-3/4 md:w-1/2 max-w-[1200px]"
+        />
+
+        <div class="flex items-center justify-center gap-2 mt-4 w-full sm:w-3/4 md:w-1/2">
+          <button 
+            phx-click="button_1" 
+            phx-value-press_type="long_press" 
+            class={button_class()}>
+            A (Long)
+          </button>
+          <button 
+            phx-click="button_1" 
+            phx-value-press_type="single_press" 
+            class={button_class()}>
+            A
+          </button>
+          <button 
+            phx-click="button_2" 
+            phx-value-press_type="single_press" 
+            class={button_class()}>
+            B
+          </button>
+          <button 
+            phx-click="button_2" 
+            phx-value-press_type="long_press" 
+            class={button_class()}>
+            B (Long)
+          </button>
         </div>
-        <p class="attribution">Simulator was contributed by <a href="https://github.com/matthias-maennich">Matthias Männich</a>. Thanks Matthias!</p>
+        <p class="mt-4 text-[0.6rem]">
+          Simulator was contributed by <a href="https://github.com/matthias-maennich" class={["text-[navy] no-underline hover:underline"]}>Matthias Männich</a>. Thanks Matthias!
+        </p>
       </div>
-
-      <style type="text/css">
-        body {
-          font-family: "Helvetica";
-          margin: 0;
-          padding: 2rem;
-          background: #f5f5f5;
-        }
-        .container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .frame-image {
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        .controls {
-          display: flex;
-          gap: 0.75rem;
-          margin-top: 1rem;
-        }
-        .btn {
-          min-width: 4rem;
-          padding: 0.5rem 1rem;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          background: white;
-          cursor: pointer;
-          font-weight: 700;
-          transition: all 0.1s ease;
-        }
-        .btn:hover {
-          background: #f9f9f9;
-          border-color: #999;
-        }
-        .btn:active {
-          transform: scale(0.95);
-          background: #e0e0e0;
-        }
-
-        .attribution {
-          margin-top: 1rem;
-          font-size: 0.6rem;
-        }
-
-        a {
-          color: Navy;
-          text-decoration: none;
-        }
-
-        a:hover {
-          text-decoration: underline;
-        }
-      </style>
       """
     end
 
@@ -99,6 +82,10 @@ if Mix.target() == :host do
 
     defp frame_to_data_url(frame) do
       "data:image/png;base64," <> Base.encode64(frame)
+    end
+
+    defp button_class() do
+      "flex-1 min-w-28 px-4 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer font-bold transition-all duration-100 ease-in-out hover:bg-gray-50 hover:border-gray-600 active:scale-95 active:bg-gray-200"
     end
   end
 end
