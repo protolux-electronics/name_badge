@@ -16,7 +16,8 @@ config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :nerves, :firmware,
   rootfs_overlay: "rootfs_overlay",
-  provisioning: "config/provisioning.conf"
+  provisioning: "config/provisioning.conf",
+  mksquashfs_flags: ["-noI", "-noId", "-noD", "-noF", "-noX"]
 
 # Set the SOURCE_DATE_EPOCH date for reproducible builds.
 # See https://reproducible-builds.org/docs/source-date-epoch/ for more information
