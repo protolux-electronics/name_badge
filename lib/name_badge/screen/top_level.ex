@@ -22,7 +22,7 @@ defmodule NameBadge.Screen.TopLevel do
 
   @impl NameBadge.Screen
   def render(assigns) do
-    {_module, text_to_display} = Enum.at(assigns.screens, assigns.current_index)
+    text_to_display = screen_text(Enum.at(assigns.screens, assigns.current_index))
 
     """
     #place(center + horizon, text(size: 64pt, font: "Silkscreen", tracking: -8pt, "#{text_to_display}"))
@@ -48,12 +48,16 @@ defmodule NameBadge.Screen.TopLevel do
           assign(screen, current_index: rem(screen.assigns.current_index + 1, num_screens))
 
         :button_2 ->
-          {module, _text_to_display} =
-            Enum.at(screen.assigns.screens, screen.assigns.current_index)
-
-          navigate(screen, module)
+          entry = Enum.at(screen.assigns.screens, screen.assigns.current_index)
+          navigate_to_screen(screen, entry)
       end
 
     {:noreply, screen}
   end
+
+  defp screen_text({_module, text}), do: text
+  defp screen_text({_module, text, _args}), do: text
+
+  defp navigate_to_screen(screen, {module, _text}), do: navigate(screen, module)
+  defp navigate_to_screen(screen, {module, _text, args}), do: navigate(screen, module, args)
 end

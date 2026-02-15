@@ -42,14 +42,18 @@ defmodule NameBadge.Screen do
     %{screen | action: {:navigate, :back}}
   end
 
-  def navigate(screen, module) do
+  def navigate(screen, module) when is_atom(module) do
     %{screen | action: {:navigate, module}}
+  end
+
+  def navigate(screen, module, mount_args) when is_atom(module) do
+    %{screen | action: {:navigate, module, mount_args}}
   end
 
   @impl true
   def init(args) do
-    {screen_args, mount_args} = Keyword.split(args, [:module])
-    module = Keyword.fetch!(screen_args, :module)
+    module = Keyword.fetch!(args, :module)
+    mount_args = Keyword.get(args, :mount_args)
 
     {:ok, %__MODULE__{module: module, mount_args: mount_args}, {:continue, :mount}}
   end
@@ -138,6 +142,9 @@ defmodule NameBadge.Screen do
 
       {:navigate, module} ->
         ScreenManager.navigate(module)
+
+      {:navigate, module, mount_args} ->
+        ScreenManager.navigate(module, mount_args)
     end
 
     {:noreply, screen}
@@ -162,7 +169,7 @@ defmodule NameBadge.Screen do
   defmacro __using__(_opts) do
     quote do
       @behaviour NameBadge.Screen
-      import NameBadge.Screen, only: [assign: 2, assign: 3, navigate: 2]
+      import NameBadge.Screen, only: [assign: 2, assign: 3, navigate: 2, navigate: 3]
 
       # default mount
       def mount(args, screen), do: {:ok, screen}
@@ -200,7 +207,7 @@ defmodule NameBadge.Screen do
     end
   end
 
-  @callback mount(args :: keyword(), screen :: t()) :: {:ok, t()}
+  @callback mount(args :: any(), screen :: t()) :: {:ok, t()}
   @callback render(assigns :: map()) :: String.t()
   @callback handle_button(
               which_button :: atom(),
