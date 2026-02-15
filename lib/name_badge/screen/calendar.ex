@@ -18,10 +18,18 @@ defmodule NameBadge.Screen.Calendar do
   # ── Callbacks ───────────────────────────────────────────────────────────
 
   @impl NameBadge.Screen
-  def mount(_args, screen) do
+  def mount(args, screen) do
     events = NameBadge.CalendarService.get_events()
     now = DateTime.now!(@timezone)
     today = DateTime.to_date(now)
+
+    # Allow overriding the selected_date via mount_args for testing
+    selected_date =
+      case args do
+        %{selected_date: date} when is_struct(date, Date) -> date
+        [selected_date: date] when is_struct(date, Date) -> date
+        _ -> today
+      end
 
     screen =
       screen
@@ -30,7 +38,7 @@ defmodule NameBadge.Screen.Calendar do
         events: events,
         now: now,
         today: today,
-        selected_date: today
+        selected_date: selected_date
       )
       |> assign(button_hints: %{a: "Next", b: "Prev"})
 
