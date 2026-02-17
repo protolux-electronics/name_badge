@@ -13,11 +13,7 @@ defmodule NameBadge.ScreenManager do
     GenServer.cast(__MODULE__, :back)
   end
 
-  def navigate(module) when is_atom(module) do
-    GenServer.cast(__MODULE__, {:navigate, module, nil})
-  end
-
-  def navigate(module, mount_args) when is_atom(module) do
+  def navigate(module, mount_args \\ nil) when is_atom(module) do
     GenServer.cast(__MODULE__, {:navigate, module, mount_args})
   end
 

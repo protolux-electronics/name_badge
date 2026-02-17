@@ -13,12 +13,15 @@ defmodule NameBadge.Screen.TopLevel do
 
   defp screens do
     if NameBadge.CalendarService.enabled?() do
-      # Insert Calendar after Weather
       List.insert_at(@base_screens, 4, {Screen.Calendar, "Calendar"})
     else
       @base_screens
     end
+    |> Enum.map(&normalize_screen/1)
   end
+
+  defp normalize_screen({module, text}), do: {module, text, nil}
+  defp normalize_screen({_module, _text, _args} = entry), do: entry
 
   @impl NameBadge.Screen
   def render(assigns) do
@@ -48,16 +51,12 @@ defmodule NameBadge.Screen.TopLevel do
           assign(screen, current_index: rem(screen.assigns.current_index + 1, num_screens))
 
         :button_2 ->
-          entry = Enum.at(screen.assigns.screens, screen.assigns.current_index)
-          navigate_to_screen(screen, entry)
+          {module, _text, args} = Enum.at(screen.assigns.screens, screen.assigns.current_index)
+          navigate(screen, module, args)
       end
 
     {:noreply, screen}
   end
 
-  defp screen_text({_module, text}), do: text
   defp screen_text({_module, text, _args}), do: text
-
-  defp navigate_to_screen(screen, {module, _text}), do: navigate(screen, module)
-  defp navigate_to_screen(screen, {module, _text, args}), do: navigate(screen, module, args)
 end

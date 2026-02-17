@@ -42,11 +42,7 @@ defmodule NameBadge.Screen do
     %{screen | action: {:navigate, :back}}
   end
 
-  def navigate(screen, module) when is_atom(module) do
-    %{screen | action: {:navigate, module}}
-  end
-
-  def navigate(screen, module, mount_args) when is_atom(module) do
+  def navigate(screen, module, mount_args \\ nil) when is_atom(module) do
     %{screen | action: {:navigate, module, mount_args}}
   end
 
@@ -139,9 +135,6 @@ defmodule NameBadge.Screen do
     case action do
       {:navigate, :back} ->
         ScreenManager.navigate(:back)
-
-      {:navigate, module} ->
-        ScreenManager.navigate(module)
 
       {:navigate, module, mount_args} ->
         ScreenManager.navigate(module, mount_args)
