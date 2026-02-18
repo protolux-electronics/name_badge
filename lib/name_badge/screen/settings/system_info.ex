@@ -28,11 +28,11 @@ defmodule NameBadge.Screen.Settings.SystemInfo do
 
     Partition A:
     - Version: #{assigns.version.a}
-    - UUID: #{assigns.version.a_uuid |> String.slice(0..18)}...
+    - UUID: #{if assigns.version.a_uuid, do: String.slice(assigns.version.a_uuid, 0..18) <> "...", else: "N/A"}
 
     Partition B:
-    - Version: #{assigns.version.b} 
-    - UUID: #{assigns.version.b_uuid |> String.slice(0..18)}...
+    - Version: #{assigns.version.b || "N/A"} 
+    - UUID: #{if assigns.version.b_uuid, do: String.slice(assigns.version.b_uuid, 0..18) <> "...", else: "N/A"}
     """
   end
 
