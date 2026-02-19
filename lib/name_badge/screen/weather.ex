@@ -44,9 +44,9 @@ defmodule NameBadge.Screen.Weather do
   end
 
   def render(%{weather: weather, location: location}) do
-    temp_display = format_temperature(weather.temperature)
+    temp_display = format_temperature(weather.temperature, weather.temperature_unit)
     condition = weather_condition_text(weather.weather_code, weather.is_day)
-    wind_display = format_wind_speed(weather.wind_speed)
+    wind_display = format_wind_speed(weather.wind_speed, weather.wind_speed_unit)
 
     """
     #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
@@ -147,17 +147,25 @@ defmodule NameBadge.Screen.Weather do
 
   # Private helper functions
 
-  defp format_temperature(temp) when is_number(temp) do
+  defp format_temperature(temp, unit) when is_number(temp) and is_binary(unit) do
+    "#{round(temp)}#{unit}"
+  end
+
+  defp format_temperature(temp, _unit) when is_number(temp) do
     "#{round(temp)}°C"
   end
 
-  defp format_temperature(_), do: "N/A"
+  defp format_temperature(_, _), do: "N/A"
 
-  defp format_wind_speed(speed) when is_number(speed) do
-    "#{round(speed)} m/s"
+  defp format_wind_speed(speed, unit) when is_number(speed) and is_binary(unit) do
+    "#{round(speed)} #{unit}"
   end
 
-  defp format_wind_speed(_), do: "N/A"
+  defp format_wind_speed(speed, _unit) when is_number(speed) do
+    "#{round(speed)} km/h"
+  end
+
+  defp format_wind_speed(_, _), do: "N/A"
 
   defp format_last_updated(timestamp) when is_binary(timestamp) do
     case DateTime.from_iso8601(timestamp <> ":00Z") do

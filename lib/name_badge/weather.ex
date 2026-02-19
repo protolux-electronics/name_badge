@@ -314,13 +314,16 @@ defmodule NameBadge.Weather do
     case Req.get(@openmeteo_url, params: params, receive_timeout: 8_000) do
       {:ok, %{status: 200, body: data}} ->
         current = data["current_weather"]
+        units = data["current_weather_units"] || %{}
 
         weather = %{
           temperature: current["temperature"],
           wind_speed: current["windspeed"],
           weather_code: current["weathercode"],
           is_day: current["is_day"] == 1,
-          timestamp: current["time"]
+          timestamp: current["time"],
+          temperature_unit: units["temperature"] || "°C",
+          wind_speed_unit: units["windspeed"] || "km/h"
         }
 
         {:ok, weather}
