@@ -12,6 +12,7 @@ defmodule NameBadge.Weather do
     :longitude,
     :location_source,
     :weather_data,
+    :forecast_data,
     :last_updated,
     :timer,
     :failure_count,
@@ -49,6 +50,24 @@ defmodule NameBadge.Weather do
 
       :exit, {:noproc, _} ->
         Logger.warning("Weather service not available")
+        nil
+    end
+  end
+
+  @doc """
+  Get 7-day daily forecast data. Returns nil if not available.
+  Each entry is a map with keys: :date, :weather_code, :max_temp, :min_temp, :max_wind.
+  """
+  def get_forecast do
+    try do
+      GenServer.call(__MODULE__, :get_forecast, @call_timeout)
+    catch
+      :exit, {:timeout, _} ->
+        Logger.warning("Weather service forecast call timed out")
+        nil
+
+      :exit, {:noproc, _} ->
+        Logger.warning("Weather service not available for forecast")
         nil
     end
   end
@@ -100,6 +119,11 @@ defmodule NameBadge.Weather do
   @impl GenServer
   def handle_call(:get_current_weather, _from, state) do
     {:reply, state.weather_data, state}
+  end
+
+  @impl GenServer
+  def handle_call(:get_forecast, _from, state) do
+    {:reply, state.forecast_data, state}
   end
 
   @impl GenServer
@@ -175,12 +199,12 @@ defmodule NameBadge.Weather do
 
   defp update_weather(state) do
     case fetch_weather(state.latitude, state.longitude) do
-      {:ok, weather} ->
-        Logger.debug("Weather updated successfully")
+      {:ok, weather, forecast} ->
 
         %{
           state
           | weather_data: weather,
+            forecast_data: forecast,
             last_updated: DateTime.utc_now(),
             failure_count: 0,
             circuit_breaker_state: :closed
@@ -308,6 +332,8 @@ defmodule NameBadge.Weather do
       latitude: latitude,
       longitude: longitude,
       current_weather: true,
+      daily: "weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max",
+      forecast_days: 7,
       timezone: "auto"
     ]
 
@@ -326,7 +352,9 @@ defmodule NameBadge.Weather do
           wind_speed_unit: units["windspeed"] || "km/h"
         }
 
-        {:ok, weather}
+        forecast = parse_daily_forecast(data)
+
+        {:ok, weather, forecast}
 
       {:ok, %{status: status_code}} ->
         Logger.error("OpenMeteo API returned #{status_code}")
@@ -336,6 +364,36 @@ defmodule NameBadge.Weather do
         Logger.error("OpenMeteo API call failed: #{inspect(reason)}")
         {:error, :network_error}
     end
+  end
+
+  defp parse_daily_forecast(%{"daily" => daily, "daily_units" => daily_units}) do
+    dates = daily["time"] || []
+    weather_codes = daily["weather_code"] || []
+    max_temps = daily["temperature_2m_max"] || []
+    min_temps = daily["temperature_2m_min"] || []
+    max_winds = daily["wind_speed_10m_max"] || []
+
+    temp_unit = daily_units["temperature_2m_max"] || "°C"
+    wind_unit = daily_units["wind_speed_10m_max"] || "km/h"
+
+    dates
+    |> Enum.with_index()
+    |> Enum.map(fn {date, i} ->
+      %{
+        date: date,
+        weather_code: Enum.at(weather_codes, i),
+        max_temp: Enum.at(max_temps, i),
+        min_temp: Enum.at(min_temps, i),
+        max_wind: Enum.at(max_winds, i),
+        temperature_unit: temp_unit,
+        wind_speed_unit: wind_unit
+      }
+    end)
+  end
+
+  defp parse_daily_forecast(_data) do
+    Logger.warning("No daily forecast data in API response")
+    []
   end
 
   defp record_failure(state, _reason) do
