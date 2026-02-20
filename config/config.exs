@@ -19,7 +19,7 @@ config :name_badge, :timezone, "Europe/Stockholm"
 config :nerves, :firmware,
   rootfs_overlay: "rootfs_overlay",
   provisioning: "config/provisioning.conf",
-  mksquashfs_flags: ["-noI", "-noId", "-noD", "-noF", "-noX"]
+  mksquashfs_flags: ["-no-compression", "-no-xattrs", "-quiet"]
 
 # Set the SOURCE_DATE_EPOCH date for reproducible builds.
 # See https://reproducible-builds.org/docs/source-date-epoch/ for more information
