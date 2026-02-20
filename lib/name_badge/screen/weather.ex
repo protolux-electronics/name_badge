@@ -54,6 +54,7 @@ defmodule NameBadge.Screen.Weather do
   def render(%{weather: weather, location: location}) do
     temp_display = format_temperature(weather.temperature, weather.temperature_unit)
     condition = weather_condition_text(weather.weather_code, weather.is_day)
+    symbol = weather_symbol(weather.weather_code, weather.is_day)
     wind_display = format_wind_speed(weather.wind_speed, weather.wind_speed_unit)
     date_display = format_current_date()
 
@@ -72,6 +73,9 @@ defmodule NameBadge.Screen.Weather do
 
         // Location
         text(size: 14pt, style: "italic")[#{location || "Unknown Location"}],
+
+        // Weather symbol (using Unicode-compatible font)
+        text(size: 48pt, font: "DejaVu Sans")[#{symbol}],
 
         // Temperature (main display)
         text(size: 48pt, weight: 600)[#{temp_display}],
@@ -197,7 +201,7 @@ defmodule NameBadge.Screen.Weather do
 
   # ── Forecast view ──────────────────────────────────────────────────────
 
-  defp render_forecast(%{forecast: forecast, location: location}) do
+  defp render_forecast(%{forecast: forecast, location: location}) when is_list(forecast) do
     date_range = format_date_range(forecast)
 
     # Row 1: Day name abbreviations (Mo, Tu, We, ...)
@@ -216,11 +220,11 @@ defmodule NameBadge.Screen.Weather do
       end)
       |> Enum.join(", ")
 
-    # Row 3: Weather conditions (short text, clipped to cell width)
+    # Row 3: Weather symbols (using Unicode-compatible font)
     conditions =
       forecast
       |> Enum.map(fn day ->
-        "[#box(width: 100%, clip: true)[#text(size: 12pt)[#{weather_condition_short(day.weather_code)}]]]"
+        "[#text(size: 32pt, font: \"DejaVu Sans\")[#{weather_symbol(day.weather_code, true)}]]"
       end)
       |> Enum.join(", ")
 
@@ -246,7 +250,6 @@ defmodule NameBadge.Screen.Weather do
     ]
 
     #v(2pt)
-    
 
     #table(
       columns: (1fr,) * 7,
@@ -332,43 +335,58 @@ defmodule NameBadge.Screen.Weather do
 
   defp format_last_updated(_), do: "Recently"
 
-  # ── Weather condition texts ───────────────────────────────────────────
+  # ── Weather symbols ───────────────────────────────────────────────────
 
-  defp weather_condition_short(code) when is_number(code) do
+  defp weather_symbol(code, is_day) when is_number(code) do
     case code do
-      0 -> "Clear"
-      1 -> "Clear"
-      2 -> "Clouds"
-      3 -> "Ovcst"
-      45 -> "Fog"
-      48 -> "Fog"
-      51 -> "Drzzl"
-      53 -> "Drzzl"
-      55 -> "Drzzl"
-      56 -> "FrzDr"
-      57 -> "FrzDr"
-      61 -> "Rain"
-      63 -> "Rain"
-      65 -> "Rain+"
-      66 -> "FrzRn"
-      67 -> "FrzRn"
-      71 -> "Snow"
-      73 -> "Snow"
-      75 -> "Snow+"
-      77 -> "Snow"
-      80 -> "Shwrs"
-      81 -> "Shwrs"
-      82 -> "Shwrs"
-      85 -> "SnShw"
-      86 -> "SnShw"
-      95 -> "Storm"
-      96 -> "Storm"
-      99 -> "Storm"
-      _ -> "N/A"
+      # Clear sky
+      0 -> if is_day, do: "☀", else: "☾"
+      # Mainly clear
+      1 -> if is_day, do: "☀", else: "☾"
+      # Partly cloudy
+      2 -> "☁"
+      # Overcast
+      3 -> "☁"
+      # Fog
+      45 -> "≋"
+      48 -> "≋"
+      # Drizzle
+      51 -> "∴"
+      53 -> "∴"
+      55 -> "∴"
+      # Freezing drizzle
+      56 -> "❄"
+      57 -> "❄"
+      # Rain
+      61 -> "☂"
+      63 -> "☂"
+      65 -> "☂"
+      # Freezing rain
+      66 -> "❄"
+      67 -> "❄"
+      # Snow
+      71 -> "❄"
+      73 -> "❄"
+      75 -> "❄"
+      77 -> "❄"
+      # Rain showers
+      80 -> "☂"
+      81 -> "☂"
+      82 -> "☂"
+      # Snow showers
+      85 -> "❄"
+      86 -> "❄"
+      # Thunderstorm
+      95 -> "⚡"
+      96 -> "⚡"
+      99 -> "⚡"
+      _ -> "?"
     end
   end
 
-  defp weather_condition_short(_code), do: "N/A"
+  defp weather_symbol(_code, _is_day), do: "?"
+
+  # ── Weather condition texts ───────────────────────────────────────────
 
   defp weather_condition_text(code, is_day) when is_number(code) do
     case code do
