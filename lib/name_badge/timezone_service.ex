@@ -230,13 +230,6 @@ defmodule NameBadge.TimezoneService do
       "TimezoneService: updated – timezone=#{timezone}, lat=#{latitude}, lon=#{longitude}, location=#{location_name}"
     )
 
-    # Notify other services via the Registry
-    Registry.dispatch(NameBadge.Registry, :timezone_updated, fn entries ->
-      for {pid, _value} <- entries do
-        send(pid, {:timezone_updated, timezone, latitude, longitude, location_name})
-      end
-    end)
-
     %{
       state
       | timezone: timezone,

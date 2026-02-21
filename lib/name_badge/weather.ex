@@ -90,9 +90,6 @@ defmodule NameBadge.Weather do
         failure_count: 0
     }
 
-    # Subscribe to timezone/location updates from TimezoneService
-    Registry.register(NameBadge.Registry, :timezone_updated, [])
-
     # Schedule initialization after a short delay to let TimezoneService start first
     :timer.send_after(1_000, :initialize)
 
@@ -160,22 +157,6 @@ defmodule NameBadge.Weather do
   def handle_info(:retry_after_circuit_breaker, state) do
     Logger.debug("Retrying weather service after circuit breaker timeout")
     new_state = %{state | circuit_breaker_state: :half_open}
-    updated_state = update_weather(new_state)
-    {:noreply, updated_state}
-  end
-
-  # Handle timezone/location updates from TimezoneService
-  @impl GenServer
-  def handle_info({:timezone_updated, _timezone, lat, lon, location_name}, state) do
-    Logger.info("Weather: received location update – #{lat}, #{lon} (#{location_name})")
-
-    new_state = %{
-      state
-      | latitude: lat,
-        longitude: lon,
-        location_name: location_name
-    }
-
     updated_state = update_weather(new_state)
     {:noreply, updated_state}
   end
