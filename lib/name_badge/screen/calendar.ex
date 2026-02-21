@@ -13,14 +13,13 @@ defmodule NameBadge.Screen.Calendar do
   require Logger
 
   @views [:day, :week, :month]
-  @timezone "Etc/UTC"
 
   # ── Callbacks ───────────────────────────────────────────────────────────
 
   @impl NameBadge.Screen
   def mount(_args, screen) do
     events = NameBadge.CalendarService.get_events()
-    now = DateTime.now!(@timezone)
+    now = DateTime.now!(NameBadge.timezone())
     today = DateTime.to_date(now)
 
     screen =
@@ -65,7 +64,7 @@ defmodule NameBadge.Screen.Calendar do
 
   @impl NameBadge.Screen
   def handle_info(:tick, screen) do
-    now = DateTime.now!(@timezone)
+    now = DateTime.now!(NameBadge.timezone())
     events = NameBadge.CalendarService.get_events()
     Process.send_after(self(), :tick, :timer.minutes(1))
 

@@ -46,12 +46,19 @@ defmodule NameBadge.Layout do
 
     link_icon = if NameBadge.Socket.connected?(), do: "link.png", else: "link-slash.png"
 
+    # Get current time in HH:MM format
+    current_time =
+      DateTime.utc_now()
+      |> DateTime.shift_zone!(NameBadge.timezone())
+      |> Calendar.strftime("%H:%M")
+
     """
     #place(
       top + right,
       dy: -24pt,
       dx: 24pt,
       box(height: 16pt, stack(dir: ltr, spacing: 8pt,
+        align(horizon, text(size: 14pt)[#{current_time}]),
         image("images/icons/#{battery_icon}"),
         image("images/icons/#{wifi_icon}"),
         image("images/icons/#{link_icon}"),

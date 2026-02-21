@@ -34,4 +34,11 @@ defmodule NameBadge do
     {~c"Protolux Goatmire Name Badge", to_charlist(msg), ~c"Password: ", false}
   end
 
+  @doc """
+  Returns the configured timezone for the application.
+  Defaults to Europe/Stockholm.
+  """
+  def timezone do
+    Application.get_env(:name_badge, :timezone, "Europe/Stockholm")
+  end
 end

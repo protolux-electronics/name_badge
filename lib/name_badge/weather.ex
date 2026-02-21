@@ -1,7 +1,8 @@
 defmodule NameBadge.Weather do
   @moduledoc """
-  Weather service that fetches current weather data using IP-based location detection
-  and the OpenMeteo API. Provides fault-tolerant weather updates with caching.
+  Weather service that fetches current weather data using location from
+  NameBadge.TimezoneService and the OpenMeteo API.
+  Provides fault-tolerant weather updates with caching.
   """
 
   use GenServer
@@ -10,7 +11,7 @@ defmodule NameBadge.Weather do
   defstruct [
     :latitude,
     :longitude,
-    :location_source,
+    :location_name,
     :weather_data,
     :last_updated,
     :timer,
@@ -26,9 +27,7 @@ defmodule NameBadge.Weather do
   @call_timeout 5_000
 
   # API URLs
-  @ip_geolocation_url "http://ip-api.com/json"
   @openmeteo_url "https://api.open-meteo.com/v1/forecast"
-  @nominatim_url "https://nominatim.openstreetmap.org/reverse"
 
   # Client API
 
@@ -91,7 +90,7 @@ defmodule NameBadge.Weather do
         failure_count: 0
     }
 
-    # Schedule initialization after a short delay
+    # Schedule initialization after a short delay to let TimezoneService start first
     :timer.send_after(1_000, :initialize)
 
     {:ok, initial_state}
@@ -104,7 +103,7 @@ defmodule NameBadge.Weather do
 
   @impl GenServer
   def handle_call(:get_location_name, _from, state) do
-    {:reply, state.location_source, state}
+    {:reply, state.location_name, state}
   end
 
   @impl GenServer
@@ -115,15 +114,15 @@ defmodule NameBadge.Weather do
 
   @impl GenServer
   def handle_info(:initialize, state) do
-    case get_location() do
-      {:ok, lat, lon, source} ->
-        Logger.info("Weather location: #{lat}, #{lon} (#{source})")
+    case get_location_from_timezone_service() do
+      {:ok, lat, lon, location_name} ->
+        Logger.info("Weather location: #{lat}, #{lon} (#{location_name})")
 
         new_state = %{
           state
           | latitude: lat,
             longitude: lon,
-            location_source: source
+            location_name: location_name
         }
 
         # Schedule periodic updates
@@ -141,7 +140,7 @@ defmodule NameBadge.Weather do
         end
 
       {:error, reason} ->
-        Logger.error("Failed to get location: #{inspect(reason)}")
+        Logger.warning("No location available yet: #{inspect(reason)}")
         # Retry initialization in 30 seconds
         :timer.send_after(30_000, :initialize)
         {:noreply, state}
@@ -170,6 +169,16 @@ defmodule NameBadge.Weather do
 
   # Private Functions
 
+  defp get_location_from_timezone_service do
+    case NameBadge.TimezoneService.get_location() do
+      {lat, lon, location_name} when not is_nil(lat) and not is_nil(lon) ->
+        {:ok, lat, lon, location_name || "Unknown"}
+
+      _ ->
+        {:error, :no_location}
+    end
+  end
+
   defp update_weather(%{latitude: nil} = state), do: state
   defp update_weather(%{circuit_breaker_state: :open} = state), do: state
 
@@ -194,113 +203,6 @@ defmodule NameBadge.Weather do
     error ->
       Logger.error("Unexpected error updating weather: #{inspect(error)}")
       record_failure(state, error)
-  end
-
-  defp get_location do
-    case get_configured_location() do
-      {:ok, lat, lon, source} ->
-        {:ok, lat, lon, source}
-
-      :not_configured ->
-        get_location_from_ip()
-    end
-  end
-
-  defp get_configured_location do
-    # Environment variables take precedence over config
-    env_lat = System.get_env("WEATHER_LATITUDE")
-    env_lon = System.get_env("WEATHER_LONGITUDE")
-    env_name = System.get_env("WEATHER_LOCATION_NAME")
-
-    weather_config = Application.get_env(:name_badge, :weather, [])
-
-    config_lat = Keyword.get(weather_config, :latitude)
-    config_lon = Keyword.get(weather_config, :longitude)
-    config_name = Keyword.get(weather_config, :name)
-
-    lat = parse_coordinate(env_lat) || config_lat
-    lon = parse_coordinate(env_lon) || config_lon
-    explicit_name = env_name || config_name
-
-    if lat && lon do
-      location_name = explicit_name || reverse_geocode(lat, lon) || "Configured Location"
-      Logger.info("Using configured location: #{lat}, #{lon} (#{location_name})")
-      {:ok, lat, lon, location_name}
-    else
-      :not_configured
-    end
-  end
-
-  defp parse_coordinate(nil), do: nil
-
-  defp parse_coordinate(value) when is_binary(value) do
-    case Float.parse(value) do
-      {float, _} -> float
-      :error -> nil
-    end
-  end
-
-  defp reverse_geocode(lat, lon) do
-    Logger.debug("Reverse geocoding coordinates: #{lat}, #{lon}")
-
-    params = [
-      lat: lat,
-      lon: lon,
-      format: "json",
-      zoom: 10
-    ]
-
-    headers = [{"user-agent", "NameBadge/1.0"}]
-
-    case Req.get(@nominatim_url, params: params, headers: headers, receive_timeout: 5_000) do
-      {:ok, %{status: 200, body: %{"address" => address}}} ->
-        city = address["city"] || address["town"] || address["village"] || address["municipality"]
-        country = address["country"]
-
-        case {city, country} do
-          {nil, nil} -> nil
-          {nil, country} -> country
-          {city, nil} -> city
-          {city, country} -> "#{city}, #{country}"
-        end
-
-      {:ok, response} ->
-        Logger.warning("Unexpected response from Nominatim: #{inspect(response)}")
-        nil
-
-      {:error, reason} ->
-        Logger.warning("Reverse geocoding failed: #{inspect(reason)}")
-        nil
-    end
-  end
-
-  defp get_location_from_ip do
-    Logger.info("Detecting location via IP geolocation...")
-
-    request_options = [
-      retry: :transient,
-      max_retries: 2,
-      retry_delay: fn attempt -> trunc(:math.pow(2, attempt - 1) * 500) end,
-      connect_options: [timeout: 8_000]
-    ]
-
-    case Req.get(@ip_geolocation_url, request_options) do
-      {:ok,
-       %Req.Response{
-         status: 200,
-         body: %{"lat" => lat, "lon" => lon, "city" => city, "country" => country}
-       }} ->
-        location_name = "#{city}, #{country}"
-        {:ok, lat, lon, location_name}
-
-      {:ok, response} ->
-        Logger.error("Unexpected response from IP geolocation: #{inspect(response)}")
-        {:error, "Invalid response from IP geolocation service"}
-
-      {:error, exception} ->
-        Logger.error("Failed to get location from IP: #{inspect(exception)}")
-        {:error, "Failed to get location from IP"}
-    end
   end
 
   defp fetch_weather(latitude, longitude) do

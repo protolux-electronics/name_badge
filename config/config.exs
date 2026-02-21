@@ -11,6 +11,8 @@ Application.start(:nerves_bootstrap)
 # set the time zone database
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
+config :name_badge, :timezone, "Europe/Stockholm"
+
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.
 
@@ -29,14 +31,6 @@ device_setup_url =
     raise "System environment variable `DEVICE_SETUP_URL` was not set. Use value `goatmire.fly.dev`, or set up your own server from the repo at https://github.com/protolux-electronics/goatmire"
 
 config :name_badge, :device_setup_url, device_setup_url
-
-# Optional: Weather location configuration
-# If not set, location will be determined via IP geolocation
-# Environment variables WEATHER_LATITUDE and WEATHER_LONGITUDE take precedence
-# config :name_badge, :weather,
-#   latitude: 53.56176317072124,
-#   longitude: 9.985888668967176,
-#   name: nil
 
 # Optional: Calendar sync via iCal secret address (read-only)
 # Set CALENDAR_URL to your Google Calendar secret iCal address before building.

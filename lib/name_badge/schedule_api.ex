@@ -1,7 +1,6 @@
 defmodule NameBadge.ScheduleAPI do
   @url "https://sessionize.com/api/v2/42rcx5he/view/All"
   @save_path "/data/schedule.bin"
-  @timezone "Europe/Stockholm"
 
   def get(opts \\ []) do
     image_size = Keyword.get(opts, :image_size, 32)
@@ -34,10 +33,10 @@ defmodule NameBadge.ScheduleAPI do
         title: session["title"],
         starts_at:
           NaiveDateTime.from_iso8601!(session["startsAt"])
-          |> DateTime.from_naive!(@timezone),
+          |> DateTime.from_naive!(NameBadge.timezone()),
         ends_at:
           NaiveDateTime.from_iso8601!(session["endsAt"])
-          |> DateTime.from_naive!(@timezone),
+          |> DateTime.from_naive!(NameBadge.timezone()),
         speakers: session["speakers"] |> Enum.map(&speakers[&1])
       }
     end
@@ -62,7 +61,7 @@ defmodule NameBadge.ScheduleAPI do
   end
 
   def next_sessions(schedule) do
-    now = DateTime.now!(@timezone)
+    now = DateTime.now!(NameBadge.timezone())
 
     schedule
     |> Enum.filter(&(DateTime.compare(&1.ends_at, now) == :gt))
