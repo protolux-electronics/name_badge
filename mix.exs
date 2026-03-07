@@ -17,9 +17,12 @@ defmodule NameBadge.MixProject do
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      releases: [{@app, release()}],
-      preferred_cli_target: [run: :host, test: :host]
+      releases: [{@app, release()}]
     ]
+  end
+
+  def cli do
+    [preferred_targets: [run: :host, test: :host]]
   end
 
   # Run "mix help compile.app" to learn about applications.
@@ -44,7 +47,7 @@ defmodule NameBadge.MixProject do
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
       {:dither, "~> 0.1.1"},
-      {:typst, "~> 0.2"},
+      {:typst, "~> 0.3"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
       {:icalendar, "~> 1.1"},
