@@ -47,7 +47,7 @@ defmodule NameBadge.MixProject do
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
       {:dither, "~> 0.1.1"},
-      {:typst, "~> 0.2"},
+      {:typst, "~> 0.3"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
       {:icalendar, "~> 1.1"},
