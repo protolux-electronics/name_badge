@@ -15,8 +15,7 @@ defmodule NameBadge.TimezoneService do
   require Logger
 
   @default_timezone "Europe/Stockholm"
-  @ip_geolocation_url "http://ip-api.com/json"
-  @nominatim_url "https://nominatim.openstreetmap.org/reverse"
+  @ip_geolocation_url "http://whenwhere.nerves-project.org"
 
   @wlan0_connection ["interface", "wlan0", "connection"]
 
@@ -153,20 +152,24 @@ defmodule NameBadge.TimezoneService do
       {:ok,
        %Req.Response{
          status: 200,
-         body: %{"lat" => lat, "lon" => lon, "timezone" => tz} = body
+         body: %{
+           "latitude" => lat,
+           "longitude" => lon,
+           "time_zone" => tz,
+           "city" => city,
+           "country" => country,
+           "now" => dt
+         }
        }} ->
-        city = body["city"]
-        country = body["country"]
-
-        location_name =
-          reverse_geocode(lat, lon) || build_location_name(city, country)
+        {:ok, now, _} = DateTime.from_iso8601(dt)
 
         {:ok,
          %{
-           timezone: tz,
            latitude: lat,
            longitude: lon,
-           location_name: location_name
+           timezone: tz,
+           location_name: build_location_name(city, country),
+           now: now
          }}
 
       {:ok, %Req.Response{status: status}} ->
@@ -174,28 +177,6 @@ defmodule NameBadge.TimezoneService do
 
       {:error, reason} ->
         {:error, reason}
-    end
-  end
-
-  defp reverse_geocode(lat, lon) do
-    params = [lat: lat, lon: lon, format: "json", zoom: 10]
-    headers = [{"user-agent", "NameBadge/1.0"}]
-
-    case Req.get(@nominatim_url,
-           params: params,
-           headers: headers,
-           receive_timeout: 5_000
-         ) do
-      {:ok, %{status: 200, body: %{"address" => address}}} ->
-        city =
-          address["city"] || address["town"] || address["village"] ||
-            address["municipality"]
-
-        country = address["country"]
-        build_location_name(city, country)
-
-      _ ->
-        nil
     end
   end
 
