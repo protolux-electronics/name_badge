@@ -44,8 +44,6 @@ defmodule NameBadge.Screen.PromotionalQRCode do
       qr_code_svg
       |> String.replace("\\", "\\\\")
       |> String.replace("\"", "\\\"")
-    else
-      _ -> nil
     end
   end
 end
