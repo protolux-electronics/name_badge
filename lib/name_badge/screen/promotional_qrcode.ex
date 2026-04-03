@@ -3,30 +3,30 @@ defmodule NameBadge.Screen.PromotionalQRCode do
 
   @impl NameBadge.Screen
   def render(%{qr_code: qr_code}) do
-    qr_element =
-      case qr_code do
-        qr when not is_nil(qr_code) ->
-          """
-          #align(center + horizon)[
-              #image(height: 80%, format: "svg", bytes("#{qr_code}"))
-              
-              Scan to reach me !
-          ]
-          """
+    case qr_code do
+      nil ->
+        """
+        #align(center + horizon)[
+            #text(font: \"New Amsterdam\", size: 24pt)[No QR code available]
+        ]
+        """
 
-        _ ->
-          """
-          #align(center + horizon)[
-              #text(font: \"New Amsterdam\", size: 24pt)[No QR code available]
-          ]
-          """
-      end
+      qr ->
+        """
+        #align(center + horizon)[
+            #image(height: 80%, format: "svg", bytes("#{qr}"))
+            
+            Scan to reach me !
+        ]
+        """
+    end
   end
 
   @impl NameBadge.Screen
   def mount(_args, screen) do
-    qr_link = Application.get_env(:name_badge, :qr_link, "https://nervesmeetup.eu")
-    qr_code = qr_code_for_url(String.trim(qr_link))
+    qr_code =
+      Application.get_env(:name_badge, :qr_link)
+      |> qr_code_for_url()
 
     {:ok, assign(screen, qr_code: qr_code, button_hints: %{b: "Back to badge"})}
   end
@@ -37,6 +37,8 @@ defmodule NameBadge.Screen.PromotionalQRCode do
   end
 
   def handle_button(_, _, screen), do: {:noreply, screen}
+
+  defp qr_code_for_url(nil), do: nil
 
   defp qr_code_for_url(url) do
     with {:ok, _code} = result <- QRCode.create(url),
