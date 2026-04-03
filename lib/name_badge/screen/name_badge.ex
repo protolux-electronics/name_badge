@@ -59,17 +59,7 @@ defmodule NameBadge.Screen.NameBadge do
 
     case config do
       %{"first_name" => _first_name, "last_name" => _last_name} ->
-        qr_link = Application.get_env(:name_badge, :qr_link, "https://nervesmeetup.eu")
-        qr_code = qr_code_for_url(String.trim(qr_link))
-
-        {:ok,
-         assign(screen,
-           config: config,
-           qr_code: qr_code,
-           valid?: true,
-           button_hints: %{b: "Show QR"}
-         )}
-
+        {:ok, assign(screen, config: config, valid?: true, button_hints: %{b: "Show QR"})}
       _config ->
         {:ok, assign(screen, valid?: false, button_hints: %{a: "Set up WiFi", b: "View QR code"})}
     end
