@@ -32,6 +32,8 @@ device_setup_url =
 
 config :name_badge, :device_setup_url, device_setup_url
 
+config :name_badge, :qr_link, System.get_env("QR_LINK", "https://nervesmeetup.eu")
+
 # Optional: Calendar sync via iCal secret address (read-only)
 # Set CALENDAR_URL to your Google Calendar secret iCal address before building.
 # Set CALENDAR_REFRESH_INTERVAL to customize the refresh interval in milliseconds (default: 5 min).

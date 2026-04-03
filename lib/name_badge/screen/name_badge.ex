@@ -59,7 +59,16 @@ defmodule NameBadge.Screen.NameBadge do
 
     case config do
       %{"first_name" => _first_name, "last_name" => _last_name} ->
-        {:ok, assign(screen, config: config, valid?: true)}
+        qr_link = Application.get_env(:name_badge, :qr_link, "https://nervesmeetup.eu")
+        qr_code = qr_code_for_url(String.trim(qr_link))
+
+        {:ok,
+         assign(screen,
+           config: config,
+           qr_code: qr_code,
+           valid?: true,
+           button_hints: %{b: "Show QR"}
+         )}
 
       _config ->
         {:ok, assign(screen, valid?: false, button_hints: %{a: "Set up WiFi", b: "View QR code"})}
@@ -80,7 +89,7 @@ defmodule NameBadge.Screen.NameBadge do
   def handle_button(:button_2, :single_press, screen) do
     cond do
       screen.assigns.valid? ->
-        {:noreply, screen}
+        {:noreply, navigate(screen, NameBadge.Screen.PromotionalQRCode)}
 
       true ->
         {:noreply, navigate(screen, NameBadge.Screen.Settings.QrCode)}
