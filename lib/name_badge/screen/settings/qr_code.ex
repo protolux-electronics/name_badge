@@ -54,7 +54,12 @@ defmodule NameBadge.Screen.Settings.QrCode do
   end
 
   defp qr_code_for_token(token) do
-    url = "https://#{device_setup_url()}/device/#{token}/config"
+    scheme =
+      if Application.get_env(:name_badge, :device_setup_insecure, false),
+        do: "http",
+        else: "https"
+
+    url = "#{scheme}://#{device_setup_url()}/device/#{token}/config"
 
     {:ok, qr_code_svg} =
       url

@@ -80,7 +80,7 @@ defmodule NameBadge.Screen.NameBadge do
 
     case config do
       %{"first_name" => _first_name, "last_name" => _last_name} ->
-        qr_code = generate_qr_code()
+        qr_code = generate_qr_code(config)
 
         {:ok,
          assign(screen,
@@ -101,12 +101,13 @@ defmodule NameBadge.Screen.NameBadge do
     end
   end
 
-  defp generate_qr_code do
-    Application.get_env(:name_badge, :qr_link)
+  defp generate_qr_code(config) do
+    Map.get(config, "qr_link")
     |> qr_code_for_url()
   end
 
   defp qr_code_for_url(nil), do: nil
+  defp qr_code_for_url(""), do: nil
 
   defp qr_code_for_url(url) do
     with {:ok, _code} = result <- QRCode.create(url),
