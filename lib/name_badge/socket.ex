@@ -68,6 +68,12 @@ defmodule NameBadge.Socket do
   @impl Slipstream
   def handle_call(:connected?, _from, socket), do: {:reply, connected?(socket), socket}
 
-  defp config,
-    do: [uri: "wss://#{Application.get_env(:name_badge, :device_setup_url)}/device/websocket"]
+  defp config do
+    url = Application.get_env(:name_badge, :device_setup_url)
+
+    ws_scheme =
+      if Application.get_env(:name_badge, :device_setup_insecure, false), do: "ws", else: "wss"
+
+    [uri: "#{ws_scheme}://#{url}/device/websocket"]
+  end
 end

@@ -9,6 +9,27 @@ defmodule NameBadge.Screen.NameBadge do
   @company_size_default 24
 
   @impl NameBadge.Screen
+  def render(%{show_qr: true, qr_code: qr_code}) do
+    case qr_code do
+      nil ->
+        """
+        #align(center + horizon)[
+            #text(font: "New Amsterdam", size: 24pt)[No QR code available]
+        ]
+        """
+
+      qr ->
+        """
+        #align(center + horizon)[
+            #image(height: 80%, format: "svg", bytes("#{qr}"))
+            
+            Scan to reach me !
+        ]
+        """
+    end
+  end
+
+  @impl NameBadge.Screen
   def render(%{valid?: false}) do
     """
     #show heading: set text(font: "Silkscreen", size: 36pt, weight: 400, tracking: -4pt)
@@ -59,10 +80,41 @@ defmodule NameBadge.Screen.NameBadge do
 
     case config do
       %{"first_name" => _first_name, "last_name" => _last_name} ->
-        {:ok, assign(screen, config: config, valid?: true)}
+        qr_code = generate_qr_code(config)
+
+        {:ok,
+         assign(screen,
+           config: config,
+           valid?: true,
+           qr_code: qr_code,
+           show_qr: false,
+           button_hints: %{b: "Show QR"}
+         )}
 
       _config ->
-        {:ok, assign(screen, valid?: false, button_hints: %{a: "Set up WiFi", b: "View QR code"})}
+        {:ok,
+         assign(screen,
+           valid?: false,
+           show_qr: false,
+           button_hints: %{a: "Set up WiFi", b: "View QR code"}
+         )}
+    end
+  end
+
+  defp generate_qr_code(config) do
+    Map.get(config, "qr_link")
+    |> qr_code_for_url()
+  end
+
+  defp qr_code_for_url(nil), do: nil
+  defp qr_code_for_url(""), do: nil
+
+  defp qr_code_for_url(url) do
+    with {:ok, _code} = result <- QRCode.create(url),
+         {:ok, qr_code_svg} <- QRCode.render(result) do
+      qr_code_svg
+      |> String.replace("\\", "\\\\")
+      |> String.replace("\"", "\\\"")
     end
   end
 
@@ -80,7 +132,8 @@ defmodule NameBadge.Screen.NameBadge do
   def handle_button(:button_2, :single_press, screen) do
     cond do
       screen.assigns.valid? ->
-        {:noreply, screen}
+        new_show_qr = !screen.assigns.show_qr
+        {:noreply, assign(screen, :show_qr, new_show_qr)}
 
       true ->
         {:noreply, navigate(screen, NameBadge.Screen.Settings.QrCode)}

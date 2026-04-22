@@ -30,7 +30,11 @@ device_setup_url =
   System.get_env("DEVICE_SETUP_URL") ||
     raise "System environment variable `DEVICE_SETUP_URL` was not set. Use value `goatmire.fly.dev`, or set up your own server from the repo at https://github.com/protolux-electronics/goatmire"
 
+## For local development is useful by default is false
+device_setup_insecure = System.get_env("DEVICE_SETUP_INSECURE") == "true"
+
 config :name_badge, :device_setup_url, device_setup_url
+config :name_badge, :device_setup_insecure, device_setup_insecure
 
 # Optional: Calendar sync via iCal secret address (read-only)
 # Set CALENDAR_URL to your Google Calendar secret iCal address before building.
