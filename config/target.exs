@@ -94,6 +94,7 @@ product_secret = System.get_env("NH_PRODUCT_SECRET")
 if product_key && product_secret do
   config :nerves_hub_link,
     host: "manage.nervescloud.com",
+    client: NameBadge.FirmwareClient,
     shared_secret: [
       product_key: product_key,
       product_secret: product_secret

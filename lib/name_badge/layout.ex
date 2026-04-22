@@ -15,17 +15,24 @@ defmodule NameBadge.Layout do
   end
 
   def app_layout(content, opts \\ []) do
-    buttons = Keyword.get(opts, :button_hints, %{})
+    case NameBadge.FirmwareProgress.state() do
+      :rebooting ->
+        root_layout(firmware_progress_markup(), opts)
 
-    app_layout =
-      """
-      #{icons_markup()}
-      #{buttons_markup(buttons)}
+      _ ->
+        buttons = Keyword.get(opts, :button_hints, %{})
 
-      #{content}
-      """
+        app_layout =
+          """
+          #{firmware_progress_markup()}
+          #{icons_markup()}
+          #{buttons_markup(buttons)}
 
-    root_layout(app_layout, opts)
+          #{content}
+          """
+
+        root_layout(app_layout, opts)
+    end
   end
 
   defp icons_markup() do
@@ -65,6 +72,41 @@ defmodule NameBadge.Layout do
       ))
     )
     """
+  end
+
+  defp firmware_progress_markup() do
+    case NameBadge.FirmwareProgress.state() do
+      {:downloading, percent} ->
+        bar_width = round(percent * 400 / 100)
+
+        """
+        #place(top + left, dx: -32pt, dy: -32pt,
+          stack(dir: ttb, spacing: 0pt,
+            rect(width: #{bar_width}pt, height: 4pt, fill: black),
+            rect(width: 400pt, height: 0.5pt, fill: luma(200)),
+          )
+        )
+        """
+
+      :rebooting ->
+        """
+        #place(top + left, dx: -32pt, dy: -32pt,
+          rect(width: 400pt, height: 4pt, fill: black)
+        )
+        #place(center + horizon,
+          rect(fill: white, inset: 16pt, stroke: 1pt + black, radius: 4pt)[
+            #align(center)[
+              #text(size: 24pt, font: "Silkscreen", weight: 400, tracking: -2pt)[Rebooting...]
+              #v(4pt)
+              #text(size: 14pt)[Do not remove power]
+            ]
+          ]
+        )
+        """
+
+      _ ->
+        ""
+    end
   end
 
   defp buttons_markup(button_hints) do
