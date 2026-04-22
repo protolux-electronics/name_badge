@@ -89,7 +89,7 @@ if Mix.target() == :host do
       button = key_to_button(key)
       repeat? = Map.get(params, "repeat", false)
 
-      if (button && not repeat?) and not Map.has_key?(socket.assigns.pending_keys, button) do
+      if (button != nil and not repeat?) and not Map.has_key?(socket.assigns.pending_keys, button) do
         timer_ref = Process.send_after(self(), {:long_press, button}, @long_press_ms)
         pending = Map.put(socket.assigns.pending_keys, button, timer_ref)
         {:noreply, assign(socket, :pending_keys, pending)}
