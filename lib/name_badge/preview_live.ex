@@ -2,6 +2,8 @@ if Mix.target() == :host do
   defmodule NameBadge.PreviewLive do
     use Phoenix.LiveView
 
+    @long_press_ms 500
+
     def mount(_params, _session, socket) do
       NameBadge.DisplayMock.subscribe()
 
@@ -9,7 +11,7 @@ if Mix.target() == :host do
         NameBadge.DisplayMock.get_current_frame()
         |> frame_to_data_url()
 
-      {:ok, assign(socket, current_frame: current_frame)}
+      {:ok, assign(socket, current_frame: current_frame, pending_keys: %{})}
     end
 
     def render(assigns) do
@@ -27,7 +29,11 @@ if Mix.target() == :host do
         }
       </script>
 
-      <div class="bg-gray-100 font-sans flex flex-col justify-center items-center min-h-screen w-full p-8">
+      <div
+        class="bg-gray-100 font-sans flex flex-col justify-center items-center min-h-screen w-full p-8"
+        phx-window-keydown="keydown"
+        phx-window-keyup="keyup"
+      >
         <img 
           src={@current_frame} 
           class="border border-gray-300 rounded aspect-4/3 w-full sm:w-3/4 md:w-1/2 max-w-[1200px]"
@@ -59,15 +65,14 @@ if Mix.target() == :host do
             B (Long)
           </button>
         </div>
+        <p class="mt-2 text-xs text-gray-600">
+          Keyboard: tap <kbd class="px-1 border rounded">A</kbd>/<kbd class="px-1 border rounded">B</kbd> for single press, hold for long press.
+        </p>
         <p class="mt-4 text-[0.6rem]">
           Simulator was contributed by <a href="https://github.com/matthias-maennich" class={["text-[navy] no-underline hover:underline"]}>Matthias Männich</a>. Thanks Matthias!
         </p>
       </div>
       """
-    end
-
-    def handle_info({:frame, packed_binary}, state) do
-      {:noreply, assign(state, :current_frame, frame_to_data_url(packed_binary))}
     end
 
     def handle_event("button_" <> _rest = button_name, %{"press_type" => press_type}, socket) do
@@ -78,6 +83,54 @@ if Mix.target() == :host do
       )
 
       {:noreply, socket}
+    end
+
+    def handle_event("keydown", %{"key" => key} = params, socket) do
+      button = key_to_button(key)
+      repeat? = Map.get(params, "repeat", false)
+
+      if (button && not repeat?) and not Map.has_key?(socket.assigns.pending_keys, button) do
+        timer_ref = Process.send_after(self(), {:long_press, button}, @long_press_ms)
+        pending = Map.put(socket.assigns.pending_keys, button, timer_ref)
+        {:noreply, assign(socket, :pending_keys, pending)}
+      else
+        {:noreply, socket}
+      end
+    end
+
+    def handle_event("keyup", %{"key" => key}, socket) do
+      with button when not is_nil(button) <- key_to_button(key),
+           {timer_ref, new_map} when is_reference(timer_ref) <-
+             Map.pop(socket.assigns.pending_keys, button) do
+        Process.cancel_timer(timer_ref)
+        NameBadge.ButtonMonitor.send_button_press(button, :single_press)
+        {:noreply, assign(socket, :pending_keys, new_map)}
+      else
+        _ -> {:noreply, socket}
+      end
+    end
+
+    def handle_info({:frame, packed_binary}, state) do
+      {:noreply, assign(state, :current_frame, frame_to_data_url(packed_binary))}
+    end
+
+    def handle_info({:long_press, button}, socket) do
+      case Map.pop(socket.assigns.pending_keys, button) do
+        {timer_ref, new_map} when is_reference(timer_ref) ->
+          NameBadge.ButtonMonitor.send_button_press(button, :long_press)
+          {:noreply, assign(socket, :pending_keys, new_map)}
+
+        _ ->
+          {:noreply, socket}
+      end
+    end
+
+    defp key_to_button(key) do
+      case String.downcase(key) do
+        "a" -> :button_1
+        "b" -> :button_2
+        _ -> nil
+      end
     end
 
     defp frame_to_data_url(frame) do
