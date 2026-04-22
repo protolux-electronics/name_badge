@@ -16,7 +16,8 @@ defmodule NameBadge.Screen do
     first_render?: true,
     action: nil,
     mount_args: nil,
-    last_render: %{}
+    last_render: %{},
+    fw_progress: nil
   ]
 
   def start_link(args) do
@@ -59,6 +60,7 @@ defmodule NameBadge.Screen do
     {:ok, screen} = screen.module.mount(screen.mount_args, screen)
     ButtonMonitor.subscribe(:button_1)
     ButtonMonitor.subscribe(:button_2)
+    NameBadge.FirmwareProgress.subscribe()
 
     process_screen(screen)
   end
@@ -100,6 +102,56 @@ defmodule NameBadge.Screen do
     flush_button_events(which_button, press_type)
 
     process_screen(screen)
+  end
+
+  def handle_info({:firmware_progress, {:downloading, percent}}, screen) do
+    last_percent =
+      case screen.fw_progress do
+        {:downloading, p} -> p
+        _ -> -5
+      end
+
+    if percent - last_percent >= 5 or percent == 100 do
+      fw_tick = Map.get(screen.assigns, :_fw_tick, 0) + 1
+
+      screen = %{
+        screen
+        | fw_progress: {:downloading, percent},
+          assigns: Map.put(screen.assigns, :_fw_tick, fw_tick)
+      }
+
+      process_screen(screen)
+    else
+      {:noreply, screen}
+    end
+  end
+
+  def handle_info({:firmware_progress, :rebooting}, screen) do
+    fw_tick = Map.get(screen.assigns, :_fw_tick, 0) + 1
+
+    screen = %{
+      screen
+      | fw_progress: :rebooting,
+        assigns: Map.put(screen.assigns, :_fw_tick, fw_tick)
+    }
+
+    process_screen(screen)
+  end
+
+  def handle_info({:firmware_progress, :idle}, screen) do
+    fw_tick = Map.get(screen.assigns, :_fw_tick, 0) + 1
+
+    screen = %{
+      screen
+      | fw_progress: nil,
+        assigns: Map.put(screen.assigns, :_fw_tick, fw_tick)
+    }
+
+    process_screen(screen)
+  end
+
+  def handle_info({:firmware_progress, _other}, screen) do
+    {:noreply, screen}
   end
 
   def handle_info(message, screen) do
@@ -149,6 +201,7 @@ defmodule NameBadge.Screen do
   defp maybe_render(%__MODULE__{} = screen) do
     cond do
       screen.first_render? -> {:noreply, screen, {:continue, {:render, []}}}
+      screen.fw_progress == :rebooting -> {:noreply, screen, {:continue, {:render, []}}}
       Map.equal?(screen.last_render, screen.assigns) -> {:noreply, screen}
       true -> {:noreply, screen, {:continue, {:render, [refresh_type: :partial]}}}
     end

@@ -17,7 +17,8 @@ defmodule NameBadge.Application do
         # Starts a worker by calling: NameBadge.Worker.start_link(arg)
         # {NameBadge.Worker, arg},
         {Registry, name: NameBadge.Registry, keys: :duplicate},
-        NameBadge.Socket
+        NameBadge.Socket,
+        NameBadge.FirmwareProgress
       ] ++ target_children(@target)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
