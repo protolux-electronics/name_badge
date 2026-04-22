@@ -100,10 +100,17 @@ if Mix.target() == :host do
 
     def handle_event("keyup", %{"key" => key}, socket) do
       with button when not is_nil(button) <- key_to_button(key),
-           {timer_ref, new_map} when is_reference(timer_ref) <-
+           {entry, new_map} when not is_nil(entry) <-
              Map.pop(socket.assigns.pending_keys, button) do
-        Process.cancel_timer(timer_ref)
-        NameBadge.ButtonMonitor.send_button_press(button, :single_press)
+        case entry do
+          :fired ->
+            :ok
+
+          timer_ref when is_reference(timer_ref) ->
+            Process.cancel_timer(timer_ref)
+            NameBadge.ButtonMonitor.send_button_press(button, :single_press)
+        end
+
         {:noreply, assign(socket, :pending_keys, new_map)}
       else
         _ -> {:noreply, socket}
@@ -115,10 +122,11 @@ if Mix.target() == :host do
     end
 
     def handle_info({:long_press, button}, socket) do
-      case Map.pop(socket.assigns.pending_keys, button) do
-        {timer_ref, new_map} when is_reference(timer_ref) ->
+      case Map.get(socket.assigns.pending_keys, button) do
+        timer_ref when is_reference(timer_ref) ->
           NameBadge.ButtonMonitor.send_button_press(button, :long_press)
-          {:noreply, assign(socket, :pending_keys, new_map)}
+          pending = Map.put(socket.assigns.pending_keys, button, :fired)
+          {:noreply, assign(socket, :pending_keys, pending)}
 
         _ ->
           {:noreply, socket}
