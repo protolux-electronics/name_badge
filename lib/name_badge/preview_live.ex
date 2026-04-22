@@ -34,33 +34,33 @@ if Mix.target() == :host do
         phx-window-keydown="keydown"
         phx-window-keyup="keyup"
       >
-        <img 
-          src={@current_frame} 
+        <img
+          src={@current_frame}
           class="border border-gray-300 rounded aspect-4/3 w-full sm:w-3/4 md:w-1/2 max-w-[1200px]"
         />
 
         <div class="flex items-center justify-center gap-2 mt-4 w-full sm:w-3/4 md:w-1/2">
-          <button 
-            phx-click="button_1" 
-            phx-value-press_type="long_press" 
+          <button
+            phx-click="button_1"
+            phx-value-press_type="long_press"
             class={button_class()}>
             A (Long)
           </button>
-          <button 
-            phx-click="button_1" 
-            phx-value-press_type="single_press" 
+          <button
+            phx-click="button_1"
+            phx-value-press_type="single_press"
             class={button_class()}>
             A
           </button>
-          <button 
-            phx-click="button_2" 
-            phx-value-press_type="single_press" 
+          <button
+            phx-click="button_2"
+            phx-value-press_type="single_press"
             class={button_class()}>
             B
           </button>
-          <button 
-            phx-click="button_2" 
-            phx-value-press_type="long_press" 
+          <button
+            phx-click="button_2"
+            phx-value-press_type="long_press"
             class={button_class()}>
             B (Long)
           </button>
@@ -137,7 +137,7 @@ if Mix.target() == :host do
       case String.downcase(key) do
         "a" -> :button_1
         "b" -> :button_2
-        _ -> nil
+        _ -> false
       end
     end
 
