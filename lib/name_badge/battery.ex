@@ -18,10 +18,11 @@ defmodule NameBadge.Battery do
     min_voltage = 3.0
     max_voltage = 4.2
 
-    percentage = ((v - min_voltage) / (max_voltage - min_voltage) * 100)
-    |> max(0)
-    |> min(100)
-    |> round()
+    percentage =
+      ((v - min_voltage) / (max_voltage - min_voltage) * 100)
+      |> max(0)
+      |> min(100)
+      |> round()
 
     percentage
   end
