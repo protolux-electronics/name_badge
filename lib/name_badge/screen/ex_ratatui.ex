@@ -124,4 +124,62 @@ defmodule NameBadge.Screen.ExRatatui do
   end
 
   defp blank_png(), do: Raster.new() |> Raster.to_png()
+
+  @doc """
+  Generates a `NameBadge.Screen` module that hosts a fixed
+  `ExRatatui.App`. Use this from per-demo menu-facing screens that the
+  top-level menu can navigate to without passing mount args (which
+  `NameBadge.ScreenManager.navigate/1` does not carry).
+
+      defmodule NameBadge.Screen.Counter do
+        use NameBadge.Screen.ExRatatui, app: NameBadge.Screen.ExRatatui.Counter
+      end
+
+  Accepts the same options as `mount/2`:
+
+    * `:app` (required) — module implementing `ExRatatui.App`.
+    * `:app_opts` (optional) — keyword list forwarded to
+      `ExRatatui.Server` and the App's `mount/1`.
+    * `:key_map` (optional) — overrides the default badge-button to
+      `t:ExRatatui.Event.Key.t/0` mapping.
+  """
+  defmacro __using__(opts) do
+    app = Keyword.fetch!(opts, :app)
+    app_opts = Keyword.get(opts, :app_opts, [])
+    key_map = Keyword.get(opts, :key_map, nil)
+
+    quote do
+      use NameBadge.Screen
+
+      @adapter NameBadge.Screen.ExRatatui
+      @adapter_args [
+        app: unquote(app),
+        app_opts: unquote(app_opts)
+      ]
+      @adapter_key_map unquote(key_map)
+
+      @impl NameBadge.Screen
+      def mount(_args, screen) do
+        adapter_args =
+          if @adapter_key_map,
+            do: [{:key_map, @adapter_key_map} | @adapter_args],
+            else: @adapter_args
+
+        @adapter.mount(adapter_args, screen)
+      end
+
+      @impl NameBadge.Screen
+      def render(assigns), do: @adapter.render(assigns)
+
+      @impl NameBadge.Screen
+      def handle_button(button, press_type, screen),
+        do: @adapter.handle_button(button, press_type, screen)
+
+      @impl NameBadge.Screen
+      def handle_info(message, screen), do: @adapter.handle_info(message, screen)
+
+      @impl NameBadge.Screen
+      def terminate(reason, screen), do: @adapter.terminate(reason, screen)
+    end
+  end
 end
