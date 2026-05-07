@@ -12,6 +12,7 @@
   "eink": {:git, "https://github.com/protolux-electronics/eink.git", "2304b0ce685a1a12e1a2d3a4ea2e257843d6370e", []},
   "elixir_make": {:hex, :elixir_make, "0.9.0", "6484b3cd8c0cee58f09f05ecaf1a140a8c97670671a6a0e7ab4dc326c3109726", [:mix], [], "hexpm", "db23d4fd8b757462ad02f8aa73431a426fe6671c80b200d9710caf3d1dd0ffdb"},
   "ex_maybe": {:hex, :ex_maybe, "1.1.1", "95c0188191b43bd278e876ae4f0a688922e3ca016a9efd97ee7a0b741a61b899", [:mix], [], "hexpm", "1af8c78c915c7f119a513b300a1702fc5cc9fed42d54fd85995265e4c4b763d2"},
+  "ex_ratatui": {:hex, :ex_ratatui, "0.9.0", "4d6ff8706ace76ab5427155e8c52d9f5f355e9c45264ad325db7fd40b89653a6", [:mix], [{:rustler, ">= 0.0.0", [hex: :rustler, repo: "hexpm", optional: true]}, {:rustler_precompiled, "~> 0.8", [hex: :rustler_precompiled, repo: "hexpm", optional: false]}, {:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "6e1081aa200152131655e82d4bd93c52becf059666c8312afd4d1bed012f6990"},
   "expo": {:hex, :expo, "1.1.1", "4202e1d2ca6e2b3b63e02f69cfe0a404f77702b041d02b58597c00992b601db5", [:mix], [], "hexpm", "5fb308b9cb359ae200b7e23d37c76978673aa1b06e2b3075d814ce12c5811640"},
   "extty": {:hex, :extty, "0.4.2", "a180d018cefe6df319859f160b7c94fd7c8119186f9e7b9f18952496dd3ca4d1", [:mix], [], "hexpm", "6d220e5655f293d8e7acb023b3d7ffffb3f294cc2762c3357036ac9459bb6d69"},
   "file_system": {:hex, :file_system, "1.1.1", "31864f4685b0148f25bd3fbef2b1228457c0c89024ad67f7a81a3ffbc0bbad3a", [:mix], [], "hexpm", "7a15ff97dfe526aeefb090a7a9d3d03aa907e100e262a0f8f7746b78f8f87a5d"},
