@@ -13,23 +13,40 @@ defmodule NameBadge.ExRatatui.Font do
 
   `glyph/1` returns an 8-byte binary, one byte per row from top to
   bottom. Within each row, the most-significant bit is the leftmost
-  pixel of the cell. Only the top six bits of each byte are
-  meaningful; the bottom two are always zero (the rightmost column of
-  the cell is the inter-cell spacer). Row 7 is always all zeros (the
-  inter-line spacer).
+  pixel of the cell. Bits 7–2 hold the 6 cell columns; bits 1–0 are
+  always zero (unused).
 
       iex> bitmap = NameBadge.ExRatatui.Font.glyph(?A)
       iex> byte_size(bitmap)
       8
 
+  ## Source format (5×7 vs 6×8)
+
+  Glyphs are declared as ASCII-art blocks (`#` ink, `.` paper) and
+  parsed to bitmaps at compile time. Two source shapes are accepted:
+
+    * **5×7** (5 columns × 7 rows) — the typographic majority. The
+      parser implicitly adds a paper column on the right (inter-cell
+      spacing) and a paper row at the bottom (inter-line spacing).
+      Used for letters, digits, and most punctuation.
+
+    * **6×8** (6 columns × 8 rows) — used for glyphs that need to
+      fill the entire cell rectangle to render correctly across cell
+      boundaries: box-drawing characters, block elements, full-bleed
+      shading. Author controls every pixel.
+
   ## Coverage
 
-  v1 covers digits 0–9, uppercase A–Z, space, and common ASCII
-  punctuation — enough for the demo apps that drive the cell-mode
-  rendering pipeline. Codepoints outside this set fall back to a
-  visually-distinct hatched box so they are obvious in renderings
-  rather than silently blank. Lowercase letters and box-drawing glyphs
-  are deferred to a follow-up.
+  Currently encoded:
+
+    * Digits `0`–`9`
+    * Uppercase `A`–`Z`, lowercase `a`–`z`
+    * Space and common ASCII punctuation
+    * Light single-line box-drawing: `─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼`
+    * Block elements: `█ ▀ ▄ ░ ▒ ▓`
+
+  Codepoints outside this set fall back to a visually-distinct hatched
+  box so they are obvious in renderings rather than silently blank.
   """
 
   @cell_width 6
@@ -628,23 +645,465 @@ defmodule NameBadge.ExRatatui.Font do
     .....
     .....
     #####
-    """
+    """,
+    ?a => """
+    .....
+    .....
+    .###.
+    ....#
+    .####
+    #...#
+    .####
+    """,
+    ?b => """
+    #....
+    #....
+    ####.
+    #...#
+    #...#
+    #...#
+    ####.
+    """,
+    ?c => """
+    .....
+    .....
+    .###.
+    #....
+    #....
+    #....
+    .###.
+    """,
+    ?d => """
+    ....#
+    ....#
+    .####
+    #...#
+    #...#
+    #...#
+    .####
+    """,
+    ?e => """
+    .....
+    .....
+    .###.
+    #...#
+    #####
+    #....
+    .###.
+    """,
+    ?f => """
+    ..##.
+    .#...
+    .###.
+    .#...
+    .#...
+    .#...
+    .#...
+    """,
+    ?g => """
+    .....
+    .....
+    .####
+    #...#
+    .####
+    ....#
+    .###.
+    """,
+    ?h => """
+    #....
+    #....
+    ####.
+    #...#
+    #...#
+    #...#
+    #...#
+    """,
+    ?i => """
+    ..#..
+    .....
+    .##..
+    ..#..
+    ..#..
+    ..#..
+    .###.
+    """,
+    ?j => """
+    ....#
+    .....
+    ...##
+    ....#
+    ....#
+    ....#
+    .###.
+    """,
+    ?k => """
+    #....
+    #....
+    #...#
+    #..#.
+    ###..
+    #..#.
+    #...#
+    """,
+    ?l => """
+    .##..
+    ..#..
+    ..#..
+    ..#..
+    ..#..
+    ..#..
+    .###.
+    """,
+    ?m => """
+    .....
+    .....
+    ##.#.
+    #.#.#
+    #.#.#
+    #...#
+    #...#
+    """,
+    ?n => """
+    .....
+    .....
+    ####.
+    #...#
+    #...#
+    #...#
+    #...#
+    """,
+    ?o => """
+    .....
+    .....
+    .###.
+    #...#
+    #...#
+    #...#
+    .###.
+    """,
+    ?p => """
+    .....
+    .....
+    ####.
+    #...#
+    ####.
+    #....
+    #....
+    """,
+    ?q => """
+    .....
+    .....
+    .####
+    #...#
+    .####
+    ....#
+    ....#
+    """,
+    ?r => """
+    .....
+    .....
+    #.##.
+    ##...
+    #....
+    #....
+    #....
+    """,
+    ?s => """
+    .....
+    .....
+    .####
+    #....
+    .###.
+    ....#
+    ####.
+    """,
+    ?t => """
+    .#...
+    .#...
+    ###..
+    .#...
+    .#...
+    .#...
+    ..##.
+    """,
+    ?u => """
+    .....
+    .....
+    #...#
+    #...#
+    #...#
+    #...#
+    .####
+    """,
+    ?v => """
+    .....
+    .....
+    #...#
+    #...#
+    #...#
+    .#.#.
+    ..#..
+    """,
+    ?w => """
+    .....
+    .....
+    #...#
+    #...#
+    #.#.#
+    #.#.#
+    .#.#.
+    """,
+    ?x => """
+    .....
+    .....
+    #...#
+    .#.#.
+    ..#..
+    .#.#.
+    #...#
+    """,
+    ?y => """
+    .....
+    .....
+    #...#
+    #...#
+    .####
+    ....#
+    ####.
+    """,
+    ?z => """
+    .....
+    .....
+    #####
+    ....#
+    ..##.
+    #....
+    #####
+    """,
+    # Light single-line box-drawing (Unicode U+2500..U+253C). 6×8 so
+    # they span the full cell. Vertical sits at column 2; horizontal
+    # at row 3.
+    0x2500 =>
+      """
+      ......
+      ......
+      ......
+      ######
+      ......
+      ......
+      ......
+      ......
+      """,
+    0x2502 =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x250C =>
+      """
+      ......
+      ......
+      ......
+      ..####
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x2510 =>
+      """
+      ......
+      ......
+      ......
+      ###...
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x2514 =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ..####
+      ......
+      ......
+      ......
+      ......
+      """,
+    0x2518 =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ###...
+      ......
+      ......
+      ......
+      ......
+      """,
+    0x251C =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ..####
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x2524 =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ####..
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x252C =>
+      """
+      ......
+      ......
+      ......
+      ######
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    0x2534 =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ######
+      ......
+      ......
+      ......
+      ......
+      """,
+    0x253C =>
+      """
+      ..#...
+      ..#...
+      ..#...
+      ######
+      ..#...
+      ..#...
+      ..#...
+      ..#...
+      """,
+    # Block elements (Unicode U+2580, U+2584, U+2588, U+2591..U+2593).
+    0x2580 =>
+      """
+      ######
+      ######
+      ######
+      ######
+      ......
+      ......
+      ......
+      ......
+      """,
+    0x2584 =>
+      """
+      ......
+      ......
+      ......
+      ......
+      ######
+      ######
+      ######
+      ######
+      """,
+    0x2588 =>
+      """
+      ######
+      ######
+      ######
+      ######
+      ######
+      ######
+      ######
+      ######
+      """,
+    0x2591 =>
+      """
+      .#..#.
+      ......
+      #..#..
+      ......
+      .#..#.
+      ......
+      #..#..
+      ......
+      """,
+    0x2592 =>
+      """
+      #.#.#.
+      .#.#.#
+      #.#.#.
+      .#.#.#
+      #.#.#.
+      .#.#.#
+      #.#.#.
+      .#.#.#
+      """,
+    0x2593 =>
+      """
+      .#####
+      #.####
+      ##.###
+      ###.##
+      ####.#
+      #####.
+      .#####
+      #.####
+      """
   }
 
   # Compile-time conversion of each ASCII-art block to an 8-byte
   # binary. Done inline (no helper-function calls) because the module
   # itself isn't fully defined while its attributes are being
   # evaluated.
+  #
+  # Accepts two source shapes per glyph:
+  #
+  #   * 5×7 — five columns × seven rows. Each row is right-padded with
+  #     a paper column (inter-cell spacing); a blank row is appended
+  #     to reach 8 rows total (inter-line spacing).
+  #   * 6×8 — six columns × eight rows. Author controls every pixel.
+  #     Used for box-drawing and block elements that must fill the
+  #     full cell rect.
   @glyphs Map.new(@glyph_data, fn {codepoint, art} ->
-            rows =
-              art
-              |> String.split("\n", trim: true)
-              |> Enum.map(fn line ->
-                chars = String.graphemes(line)
-                5 = length(chars)
+            raw_rows = String.split(art, "\n", trim: true)
 
+            row_chars =
+              Enum.map(raw_rows, fn line ->
+                chars = String.graphemes(line)
+
+                case length(chars) do
+                  5 -> chars ++ ["."]
+                  6 -> chars
+                  n -> raise "glyph #{inspect(codepoint)}: expected 5 or 6 cols per row, got #{n}"
+                end
+              end)
+
+            rows =
+              Enum.map(row_chars, fn six_chars ->
                 [b5, b4, b3, b2, b1, b0] =
-                  Enum.map(chars ++ ["."], fn
+                  Enum.map(six_chars, fn
                     "#" -> 1
                     "." -> 0
                   end)
@@ -652,8 +1111,13 @@ defmodule NameBadge.ExRatatui.Font do
                 <<b5::1, b4::1, b3::1, b2::1, b1::1, b0::1, 0::1, 0::1>>
               end)
 
-            7 = length(rows)
-            bitmap = IO.iodata_to_binary([rows, <<0>>])
+            bitmap =
+              case length(rows) do
+                7 -> IO.iodata_to_binary([rows, <<0>>])
+                8 -> IO.iodata_to_binary(rows)
+                n -> raise "glyph #{inspect(codepoint)}: expected 7 or 8 rows, got #{n}"
+              end
+
             8 = byte_size(bitmap)
             {codepoint, bitmap}
           end)

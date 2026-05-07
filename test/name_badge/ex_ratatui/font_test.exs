@@ -22,18 +22,14 @@ defmodule NameBadge.ExRatatui.FontTest do
       assert byte_size(Font.glyph(0x2764)) == 8
     end
 
-    test "row 7 is always the inter-line spacer (zero)" do
-      for codepoint <- Font.codepoints() do
-        <<_top::7-bytes, last>> = Font.glyph(codepoint)
-        assert last == 0, "row 7 of glyph #{inspect(codepoint)} must be blank, got #{last}"
-      end
-    end
-
-    test "bottom two bits of every row are always zero (rightmost column blank)" do
+    test "bottom two bits of every row are unused padding (always zero)" do
+      # Bits 7..2 hold the 6 cell columns; bits 1..0 are always zero
+      # regardless of source format (5×7 or 6×8). This is a structural
+      # invariant of the bitmap encoding itself.
       for codepoint <- Font.codepoints(),
           <<row::8>> <- :binary.bin_to_list(Font.glyph(codepoint)) |> Enum.map(&<<&1>>) do
         assert Bitwise.band(row, 0b11) == 0,
-               "glyph #{inspect(codepoint)} has ink in the right-spacer column: row=#{row}"
+               "glyph #{inspect(codepoint)} has unexpected ink in the unused bottom 2 bits: row=#{row}"
       end
     end
 
@@ -59,17 +55,48 @@ defmodule NameBadge.ExRatatui.FontTest do
       assert Font.has_glyph?(?0)
       refute Font.glyph(?0) == <<0, 0, 0, 0, 0, 0, 0, 0>>
     end
+
+    test "─ (U+2500) fills row 3 across all 6 cell columns" do
+      # 6×8 source: row 3 is `######`, all other rows are blank. The
+      # rendered byte for row 3 has bits 7..2 set and bits 1..0 zero.
+      assert Font.glyph(0x2500) ==
+               <<0, 0, 0, 0b11111100, 0, 0, 0, 0>>
+    end
+
+    test "│ (U+2502) fills column 2 across all 8 rows (continuous vertical)" do
+      expected_row = <<0b00100000>>
+      assert Font.glyph(0x2502) == :binary.copy(expected_row, 8)
+    end
+
+    test "█ (U+2588) is fully inked" do
+      assert Font.glyph(0x2588) == :binary.copy(<<0b11111100>>, 8)
+    end
   end
 
   describe "has_glyph?/1" do
-    test "is true for digits, uppercase, and common punctuation" do
-      for cp <- Enum.concat([?0..?9, ?A..?Z, [?\s, ?., ?,, ?:, ?+, ?-, ??, ?!]]) do
+    test "is true for digits, uppercase, lowercase, and common punctuation" do
+      for cp <- Enum.concat([?0..?9, ?A..?Z, ?a..?z, [?\s, ?., ?,, ?:, ?+, ?-, ??, ?!]]) do
         assert Font.has_glyph?(cp), "expected glyph for #{[cp]}"
       end
     end
 
-    test "is false for codepoints we haven't encoded yet (lowercase, emoji)" do
-      refute Font.has_glyph?(?a)
+    test "is true for the light single-line box-drawing set" do
+      box = [0x2500, 0x2502, 0x250C, 0x2510, 0x2514, 0x2518, 0x251C, 0x2524, 0x252C, 0x2534, 0x253C]
+
+      for cp <- box do
+        assert Font.has_glyph?(cp), "expected glyph for U+#{Integer.to_string(cp, 16)}"
+      end
+    end
+
+    test "is true for the basic block elements" do
+      blocks = [0x2580, 0x2584, 0x2588, 0x2591, 0x2592, 0x2593]
+
+      for cp <- blocks do
+        assert Font.has_glyph?(cp), "expected glyph for U+#{Integer.to_string(cp, 16)}"
+      end
+    end
+
+    test "is false for codepoints we haven't encoded (emoji)" do
       refute Font.has_glyph?(0x2764)
     end
   end
