@@ -81,7 +81,19 @@ defmodule NameBadge.ExRatatui.FontTest do
     end
 
     test "is true for the light single-line box-drawing set" do
-      box = [0x2500, 0x2502, 0x250C, 0x2510, 0x2514, 0x2518, 0x251C, 0x2524, 0x252C, 0x2534, 0x253C]
+      box = [
+        0x2500,
+        0x2502,
+        0x250C,
+        0x2510,
+        0x2514,
+        0x2518,
+        0x251C,
+        0x2524,
+        0x252C,
+        0x2534,
+        0x253C
+      ]
 
       for cp <- box do
         assert Font.has_glyph?(cp), "expected glyph for U+#{Integer.to_string(cp, 16)}"

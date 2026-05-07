@@ -3,7 +3,9 @@ defmodule NameBadge.Screen.ExRatatui.CounterTest do
 
   alias ExRatatui.Event.Key
   alias ExRatatui.Layout.Rect
-  alias ExRatatui.Widgets.Paragraph
+  alias ExRatatui.Style
+  alias ExRatatui.Text.Span
+  alias ExRatatui.Widgets.{Block, Paragraph}
   alias NameBadge.Screen.ExRatatui.Counter
 
   describe "mount/1" do
@@ -36,29 +38,66 @@ defmodule NameBadge.Screen.ExRatatui.CounterTest do
   end
 
   describe "render/2" do
-    test "produces a header, count line, and two footer hints" do
-      widgets = Counter.render(%{count: 7}, %Rect{x: 0, y: 0, width: 66, height: 37})
-
-      assert length(widgets) == 4
-
-      texts =
-        Enum.map(widgets, fn {%Paragraph{text: text}, _rect} -> text end)
-
-      assert "COUNTER" in texts
-      assert "COUNT: 7" in texts
-      assert "A: +1    A LONG: RESET" in texts
-      assert "B: -1    B LONG: BACK" in texts
+    setup do
+      [widgets: Counter.render(%{count: 7}, %Rect{x: 0, y: 0, width: 66, height: 37})]
     end
 
-    test "every widget is centered horizontally" do
-      widgets = Counter.render(%{count: 0}, %Rect{x: 0, y: 0, width: 66, height: 37})
+    test "produces a bordered block, count display, and two hint lines", %{widgets: widgets} do
+      assert length(widgets) == 4
 
-      for {%Paragraph{alignment: alignment}, _rect} <- widgets do
-        assert alignment == :center
+      [{block, _}, {count, _}, {a_hints, _}, {b_hints, _}] = widgets
+
+      assert %Block{title: " counter ", borders: [:all]} = block
+      assert %Paragraph{text: "count: 7", alignment: :center} = count
+      assert %Paragraph{text: a_spans} = a_hints
+      assert %Paragraph{text: b_spans} = b_hints
+
+      assert is_list(a_spans)
+      assert is_list(b_spans)
+    end
+
+    test "keys A, A long, B, B long render in reverse-video chips", %{widgets: widgets} do
+      [_block, _count, {%Paragraph{text: a_spans}, _}, {%Paragraph{text: b_spans}, _}] = widgets
+
+      reversed = %Style{modifiers: [:reversed]}
+
+      # First and third spans on each hint line are the key chips —
+      # they must carry :reversed so the rasterer flips them to
+      # paper-on-ink.
+      assert %Span{content: " A ", style: ^reversed} = Enum.at(a_spans, 0)
+      assert %Span{content: " A long ", style: ^reversed} = Enum.at(a_spans, 2)
+      assert %Span{content: " B ", style: ^reversed} = Enum.at(b_spans, 0)
+      assert %Span{content: " B long ", style: ^reversed} = Enum.at(b_spans, 2)
+
+      # Action labels are plain (no reversal).
+      for span_index <- [1, 3], spans <- [a_spans, b_spans] do
+        assert %Span{style: %Style{modifiers: []}} = Enum.at(spans, span_index)
       end
     end
 
-    test "rects fit within the frame" do
+    test "lowercase action labels exercise the new font glyphs", %{widgets: widgets} do
+      [
+        _block,
+        {%Paragraph{text: count_text}, _},
+        {%Paragraph{text: a_spans}, _},
+        {%Paragraph{text: b_spans}, _}
+      ] = widgets
+
+      # The whole string is lowercase except the literal A / B key
+      # labels — proves we're not falling back to all-uppercase
+      # because of font gaps.
+      assert count_text =~ "count:"
+
+      labels =
+        (a_spans ++ b_spans)
+        |> Enum.map(& &1.content)
+        |> Enum.join("")
+
+      assert labels =~ "reset"
+      assert labels =~ "back"
+    end
+
+    test "every rect fits within the frame" do
       frame = %Rect{x: 0, y: 0, width: 66, height: 37}
       widgets = Counter.render(%{count: 0}, frame)
 

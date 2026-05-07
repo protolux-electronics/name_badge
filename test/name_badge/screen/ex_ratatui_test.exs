@@ -40,8 +40,7 @@ defmodule NameBadge.Screen.ExRatatuiTest do
     @impl true
     def render(_state, frame) do
       [
-        {%Paragraph{text: "HI"},
-         %Rect{x: 0, y: 0, width: frame.width, height: frame.height}}
+        {%Paragraph{text: "HI"}, %Rect{x: 0, y: 0, width: frame.width, height: frame.height}}
       ]
     end
 
