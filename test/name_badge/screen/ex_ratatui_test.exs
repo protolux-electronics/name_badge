@@ -49,6 +49,46 @@ defmodule NameBadge.Screen.ExRatatuiTest do
     def handle_event(_event, state), do: {:noreply, state}
   end
 
+  describe "mount/2 against a real Server" do
+    setup do
+      # ExRatatui.Server emits :telemetry events on init; without the
+      # app running, they log "Failed to lookup telemetry handlers"
+      # warnings that drown legitimate test output. Starting :telemetry
+      # is enough to keep them quiet — we don't actually attach any
+      # handlers.
+      {:ok, _} = Application.ensure_all_started(:telemetry)
+      :ok
+    end
+
+    test "starts the Server, paints an initial frame, and ferries diffs to the screen pid" do
+      {:ok, screen} = Adapter.mount([app: HelloApp], %Screen{module: Adapter})
+
+      on_exit(fn -> stop_server(screen) end)
+
+      assert is_pid(screen.assigns.server)
+      assert Process.alive?(screen.assigns.server)
+      assert %ExRatatui.CellSession{} = screen.assigns.session
+
+      # The Server's first render fires the cell_writer synchronously
+      # during init. Because the adapter's mount/2 sets `screen_pid =
+      # self()` (us, the test process), the diff lands in our mailbox.
+      assert_receive {:ex_ratatui_diff, %ExRatatui.CellSession.Diff{ops: ops}}, 500
+      assert ops != []
+
+      # Feeding that diff back through handle_info/2 should produce a
+      # PNG with at least one ink pixel — proving the full
+      # cell_writer → Raster → PNG path works end-to-end.
+      diff = %ExRatatui.CellSession.Diff{
+        width: 66,
+        height: 37,
+        ops: ops
+      }
+
+      {:noreply, updated} = Adapter.handle_info({:ex_ratatui_diff, diff}, screen)
+      assert <<137, 80, 78, 71, _::binary>> = updated.assigns.png
+    end
+  end
+
   describe "mount/2 guard" do
     test "raises a helpful error when the app module isn't `use ExRatatui.App`" do
       msg =
@@ -199,5 +239,13 @@ defmodule NameBadge.Screen.ExRatatuiTest do
       {:button_1, :long_press} => %Key{code: "home", kind: "press", modifiers: []},
       {:button_2, :single_press} => %Key{code: "down", kind: "press", modifiers: []}
     }
+  end
+
+  defp stop_server(screen) do
+    if pid = screen.assigns[:server], do: GenServer.stop(pid, :normal, 1_000)
+  rescue
+    _ -> :ok
+  catch
+    :exit, _ -> :ok
   end
 end
