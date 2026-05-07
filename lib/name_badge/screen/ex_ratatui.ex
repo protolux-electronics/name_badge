@@ -56,8 +56,12 @@ defmodule NameBadge.Screen.ExRatatui do
 
   use NameBadge.Screen
 
+  require Logger
+
   alias ExRatatui.CellSession
   alias ExRatatui.Event.Key
+  alias ExRatatui.Layout.Rect
+  alias ExRatatui.Widgets.Paragraph
   alias NameBadge.ExRatatui.Raster
 
   @default_key_map %{
@@ -74,6 +78,12 @@ defmodule NameBadge.Screen.ExRatatui do
 
     ensure_ex_ratatui_app!(app_mod)
 
+    # Trap exits so we can catch a crashed Server, render a fallback
+    # frame, and stay on screen until the user long-presses B to go
+    # back — instead of dying via the link and leaving the badge stuck
+    # on the last good frame.
+    Process.flag(:trap_exit, true)
+
     {cols, rows} = Raster.grid_size()
     session = CellSession.new(cols, rows)
 
@@ -89,19 +99,35 @@ defmodule NameBadge.Screen.ExRatatui do
 
     {:ok, server} = ExRatatui.Transport.start_server(server_opts)
 
+    # The Server's first render fires the cell_writer synchronously
+    # during init, so by the time start_server returns, the initial
+    # diff is already in our mailbox. Drain it now and seed assigns
+    # with real content — otherwise the base Screen's first render
+    # paints a blank PNG before our handle_info catches up, causing a
+    # one-frame flicker on every screen switch.
+    {raster, png} = drain_initial_frame(Raster.new())
+
     {:ok,
      screen
      |> assign(:server, server)
      |> assign(:session, session)
      |> assign(:key_map, key_map)
-     |> assign(:raster, Raster.new())
-     |> assign(:png, blank_png())}
+     |> assign(:raster, raster)
+     |> assign(:png, png)}
   end
 
   @impl NameBadge.Screen
   def render(assigns), do: assigns.png
 
   @impl NameBadge.Screen
+  def handle_button(_button, _press_type, %{assigns: %{server: nil}} = screen) do
+    # Server crashed earlier; the user is looking at a "TUI CRASHED"
+    # frame. Forwarding events would crash us too. Long-press B is
+    # intercepted by the base Screen for navigate :back, so the user
+    # can still get out.
+    {:noreply, screen}
+  end
+
   def handle_button(button, press_type, screen) do
     case Map.fetch(screen.assigns.key_map, {button, press_type}) do
       {:ok, %Key{} = event} ->
@@ -124,6 +150,19 @@ defmodule NameBadge.Screen.ExRatatui do
      |> assign(:png, png)}
   end
 
+  def handle_info(
+        {:EXIT, pid, reason},
+        %{assigns: %{server: server}} = screen
+      )
+      when pid == server do
+    Logger.error("ExRatatui.Server crashed: #{inspect(reason)}")
+
+    {:noreply,
+     screen
+     |> assign(:server, nil)
+     |> assign(:png, crashed_png())}
+  end
+
   def handle_info(_other, screen), do: {:noreply, screen}
 
   @impl NameBadge.Screen
@@ -133,6 +172,43 @@ defmodule NameBadge.Screen.ExRatatui do
   end
 
   defp blank_png(), do: Raster.new() |> Raster.to_png()
+
+  # Awaits the first cell_writer message and folds it into the
+  # provided raster. Falls back to a blank PNG if no diff is in the
+  # mailbox after a short window — better to start with blank and
+  # update on the next handle_info than to deadlock the screen.
+  @initial_frame_timeout 100
+  defp drain_initial_frame(raster) do
+    receive do
+      {:ex_ratatui_diff, diff} ->
+        raster = Raster.apply_diff(raster, diff)
+        {raster, Raster.to_png(raster)}
+    after
+      @initial_frame_timeout -> {raster, blank_png()}
+    end
+  end
+
+  defp crashed_png() do
+    {cols, rows} = Raster.grid_size()
+    session = CellSession.new(cols, rows)
+
+    mid = div(rows, 2)
+
+    widgets = [
+      {%Paragraph{text: "TUI CRASHED", alignment: :center},
+       %Rect{x: 0, y: mid - 1, width: cols, height: 1}},
+      {%Paragraph{text: "LONG-PRESS B FOR MENU", alignment: :center},
+       %Rect{x: 0, y: mid + 1, width: cols, height: 1}}
+    ]
+
+    :ok = CellSession.draw(session, widgets)
+    snapshot = CellSession.take_cells(session)
+    :ok = CellSession.close(session)
+
+    Raster.new()
+    |> Raster.put_snapshot(snapshot)
+    |> Raster.to_png()
+  end
 
   defp ensure_ex_ratatui_app!(app_mod) do
     Code.ensure_loaded(app_mod)

@@ -60,7 +60,7 @@ defmodule NameBadge.Screen.ExRatatuiTest do
       :ok
     end
 
-    test "starts the Server, paints an initial frame, and ferries diffs to the screen pid" do
+    test "starts the Server and seeds non-blank initial content into assigns" do
       {:ok, screen} = Adapter.mount([app: HelloApp], %Screen{module: Adapter})
 
       on_exit(fn -> stop_server(screen) end)
@@ -69,23 +69,14 @@ defmodule NameBadge.Screen.ExRatatuiTest do
       assert Process.alive?(screen.assigns.server)
       assert %ExRatatui.CellSession{} = screen.assigns.session
 
-      # The Server's first render fires the cell_writer synchronously
-      # during init. Because the adapter's mount/2 sets `screen_pid =
-      # self()` (us, the test process), the diff lands in our mailbox.
-      assert_receive {:ex_ratatui_diff, %ExRatatui.CellSession.Diff{ops: ops}}, 500
-      assert ops != []
-
-      # Feeding that diff back through handle_info/2 should produce a
-      # PNG with at least one ink pixel — proving the full
-      # cell_writer → Raster → PNG path works end-to-end.
-      diff = %ExRatatui.CellSession.Diff{
-        width: 66,
-        height: 37,
-        ops: ops
-      }
-
-      {:noreply, updated} = Adapter.handle_info({:ex_ratatui_diff, diff}, screen)
-      assert <<137, 80, 78, 71, _::binary>> = updated.assigns.png
+      # mount/2 drains the Server's first cell_writer message and
+      # folds it into the raster before returning, so :png is real
+      # content — not the blank fallback. This is what kills the
+      # one-frame blank flicker on every screen switch.
+      blank = NameBadge.ExRatatui.Raster.new() |> NameBadge.ExRatatui.Raster.to_png()
+      assert <<137, 80, 78, 71, _::binary>> = screen.assigns.png
+      assert screen.assigns.png != blank
+      assert screen.assigns.raster.cells != %{}
     end
   end
 
@@ -161,6 +152,57 @@ defmodule NameBadge.Screen.ExRatatuiTest do
 
       assert_receive {:ex_ratatui_event, %Key{code: "left"}}
       assert_receive {:ex_ratatui_event, %Key{code: "right"}}
+    end
+  end
+
+  describe "server crash handling" do
+    test "an EXIT from the hosted server replaces the PNG with a crash frame and clears :server" do
+      png_before = <<137, 80, 78, 71, 13, 10, 26, 10, "before">>
+
+      fake_server = spawn(fn -> :ok end)
+
+      screen = %Screen{
+        module: Adapter,
+        assigns: %{server: fake_server, png: png_before}
+      }
+
+      exit_msg = {:EXIT, fake_server, :killed}
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert {:noreply, updated} = Adapter.handle_info(exit_msg, screen)
+
+          assert updated.assigns.server == nil
+          assert <<137, 80, 78, 71, _::binary>> = updated.assigns.png
+          assert updated.assigns.png != png_before
+
+          send(self(), {:result, updated})
+        end)
+
+      assert log =~ "ExRatatui.Server crashed"
+      assert log =~ ":killed"
+    end
+
+    test "EXIT from an unrelated pid is ignored (treated as a stray message)" do
+      stranger = spawn(fn -> :ok end)
+      our_server = spawn(fn -> Process.sleep(:infinity) end)
+
+      screen = %Screen{
+        module: Adapter,
+        assigns: %{server: our_server, png: <<>>}
+      }
+
+      assert {:noreply, ^screen} = Adapter.handle_info({:EXIT, stranger, :normal}, screen)
+    end
+
+    test "handle_button is a no-op once the server has been cleared" do
+      screen = %Screen{
+        module: Adapter,
+        assigns: %{server: nil, key_map: default_key_map()}
+      }
+
+      assert {:noreply, ^screen} = Adapter.handle_button(:button_1, :single_press, screen)
+      refute_received {:ex_ratatui_event, _}
     end
   end
 
