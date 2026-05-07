@@ -82,6 +82,60 @@ defmodule NameBadge.ExRatatui.RasterTest do
     end
   end
 
+  describe "style: inversion" do
+    test "a cell with a non-default bg paints paper-on-ink (filling the whole cell rect)" do
+      inverted = %Cell{
+        cell(0, 0, "A")
+        | bg: :white
+      }
+
+      bin =
+        Raster.new()
+        |> Raster.put_snapshot(snapshot([inverted]))
+        |> Raster.to_grayscale()
+
+      # 'A's first row is `.###.` so pixels (1, 0), (2, 0), (3, 0) are
+      # the glyph (now paper). The empties — (0, 0), (4, 0) — and the
+      # right-spacer column (5, 0) become ink.
+      assert byte_at(bin, 0, 0) == 0
+      assert byte_at(bin, 1, 0) == 255
+      assert byte_at(bin, 2, 0) == 255
+      assert byte_at(bin, 3, 0) == 255
+      assert byte_at(bin, 4, 0) == 0
+      assert byte_at(bin, 5, 0) == 0
+
+      # Bottom inter-line spacer (row 7) is normally paper but in an
+      # inverted cell it's ink — covering the full cell rect.
+      for x <- 0..5 do
+        assert byte_at(bin, x, 7) == 0
+      end
+    end
+
+    test "a cell with the :reversed modifier paints paper-on-ink even when bg is :reset" do
+      inverted = %Cell{cell(0, 0, "A") | modifiers: [:reversed]}
+
+      bin =
+        Raster.new()
+        |> Raster.put_snapshot(snapshot([inverted]))
+        |> Raster.to_grayscale()
+
+      assert byte_at(bin, 1, 0) == 255
+      assert byte_at(bin, 5, 0) == 0
+    end
+
+    test "default styling is unchanged (still ink-on-paper)" do
+      bin =
+        Raster.new()
+        |> Raster.put_snapshot(snapshot([cell(0, 0, "A")]))
+        |> Raster.to_grayscale()
+
+      # Same shape as the existing canonical-A test — preserved as the
+      # control case for the inversion changes.
+      assert byte_at(bin, 1, 0) == 0
+      assert byte_at(bin, 5, 0) == 255
+    end
+  end
+
   describe "apply_diff/2" do
     test "merges into the existing cell map without disturbing other cells" do
       base =

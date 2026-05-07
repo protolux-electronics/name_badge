@@ -25,13 +25,23 @@ defmodule NameBadge.ExRatatui.Raster do
   bottom). The unused strip stays paper-white. Cell sessions should be
   constructed at this grid size — see `grid_size/0`.
 
-  ## Style support (v1)
+  ## Style support
 
-  Glyphs render as ink-on-paper regardless of `fg`/`bg`. Modifiers
-  (bold, italic, underlined, reversed, …) and the `:skip` flag are
-  ignored except `:skip` cells render as paper. Reverse-video and
-  bold-as-double-strike will land in a follow-up; they aren't needed
-  for the v1 demo apps.
+  The 1-bit display has no concept of color, so any non-default
+  `bg` color or the `:reversed` modifier collapses to "this cell is
+  inverted": the glyph paints as paper on an ink background, instead
+  of ink on paper. The `fg` color is otherwise ignored — there is
+  only ink. Other modifiers (bold, italic, underlined, …) are
+  ignored. `:skip` cells render as paper.
+
+  | Cell shape                                      | Pixels        |
+  | ----------------------------------------------- | ------------- |
+  | `bg: :reset`, no `:reversed`                    | ink-on-paper  |
+  | `bg: <any non-`:reset`>`, or `:reversed` in mods| paper-on-ink  |
+  | `:skip: true`                                   | all paper     |
+
+  Bold-as-double-strike, underline-as-bottom-row, and grayscale `fg`
+  / `bg` mappings are deferred until a demo needs them.
   """
 
   import Bitwise
@@ -138,21 +148,39 @@ defmodule NameBadge.ExRatatui.Raster do
   defp cell_pixel_row(nil, _sub_y), do: @paper_cell_row
   defp cell_pixel_row(%Cell{skip: true}, _sub_y), do: @paper_cell_row
 
-  defp cell_pixel_row(%Cell{symbol: symbol}, sub_y) do
+  defp cell_pixel_row(%Cell{symbol: symbol} = cell, sub_y) do
     byte =
       symbol
       |> codepoint_of()
       |> Font.glyph()
       |> :binary.at(sub_y)
 
+    {ink, paper} = ink_and_paper(cell)
+
     Enum.map(0..(@cell_w - 1), fn i ->
       case byte >>> (7 - i) &&& 1 do
-        1 -> @ink
-        0 -> @paper
+        1 -> ink
+        0 -> paper
       end
     end)
     |> :binary.list_to_bin()
   end
+
+  # Returns the {ink_byte, paper_byte} pair to use for a cell. On the
+  # 1-bit e-ink display, "color" collapses to "are we inverted?" — a
+  # cell with a non-default bg or the `:reversed` modifier paints
+  # paper glyphs on an ink background; everything else paints the
+  # other way around.
+  defp ink_and_paper(%Cell{bg: bg, modifiers: modifiers}) do
+    if inverted?(bg, modifiers) do
+      {@paper, @ink}
+    else
+      {@ink, @paper}
+    end
+  end
+
+  defp inverted?(:reset, modifiers), do: :reversed in modifiers
+  defp inverted?(_bg, _modifiers), do: true
 
   defp codepoint_of(""), do: ?\s
 
