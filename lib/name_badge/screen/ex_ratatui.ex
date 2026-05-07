@@ -27,10 +27,17 @@ defmodule NameBadge.Screen.ExRatatui do
   ## Mount args
 
       mount: [
-        app: MyTui,                  # required, implements ExRatatui.App
+        app: MyTui,                  # required; the module MUST `use ExRatatui.App`
         app_opts: [],                # optional, forwarded to the App's mount/1
         key_map: %{...}              # optional, overrides the button mapping below
       ]
+
+  > **Why `use ExRatatui.App` and not just `@behaviour`?** The runtime
+  > calls `mod.__runtime__/0` to dispatch between the callback and
+  > reducer styles. That function is injected by `use ExRatatui.App`
+  > and does not exist on a module that only declares
+  > `@behaviour ExRatatui.App`. The adapter raises an `ArgumentError`
+  > at `mount/2` if the App module is missing it.
 
   ## Default key map
 
@@ -64,6 +71,8 @@ defmodule NameBadge.Screen.ExRatatui do
     app_mod = Keyword.fetch!(args, :app)
     app_opts = Keyword.get(args, :app_opts, [])
     key_map = Keyword.get(args, :key_map, @default_key_map)
+
+    ensure_ex_ratatui_app!(app_mod)
 
     {cols, rows} = Raster.grid_size()
     session = CellSession.new(cols, rows)
@@ -124,6 +133,31 @@ defmodule NameBadge.Screen.ExRatatui do
   end
 
   defp blank_png(), do: Raster.new() |> Raster.to_png()
+
+  defp ensure_ex_ratatui_app!(app_mod) do
+    Code.ensure_loaded(app_mod)
+
+    cond do
+      not Code.ensure_loaded?(app_mod) ->
+        raise ArgumentError,
+              "App module #{inspect(app_mod)} could not be loaded. " <>
+                "Check the spelling and make sure it compiles."
+
+      not function_exported?(app_mod, :__runtime__, 0) ->
+        raise ArgumentError, """
+        #{inspect(app_mod)} does not export __runtime__/0 — did you
+        forget `use ExRatatui.App`?
+
+        Declaring `@behaviour ExRatatui.App` alone is not enough; the
+        runtime relies on __runtime__/0 to choose between the callback
+        and reducer styles. Switch to `use ExRatatui.App` and the
+        function will be injected for you.
+        """
+
+      true ->
+        :ok
+    end
+  end
 
   @doc """
   Generates a `NameBadge.Screen` module that hosts a fixed

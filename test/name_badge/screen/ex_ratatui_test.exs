@@ -7,6 +7,73 @@ defmodule NameBadge.Screen.ExRatatuiTest do
   alias NameBadge.Screen
   alias NameBadge.Screen.ExRatatui, as: Adapter
 
+  defmodule MerelyBehaviourApp do
+    @moduledoc false
+    # Intentionally declares the behaviour but does NOT `use
+    # ExRatatui.App`, so __runtime__/0 is never injected. This is the
+    # exact mistake that crashed Counter at runtime — the adapter must
+    # detect it at mount time and raise a clear error.
+    @behaviour ExRatatui.App
+
+    @impl true
+    def mount(_), do: {:ok, %{}}
+
+    @impl true
+    def render(_, _), do: []
+
+    @impl true
+    def handle_event(_, state), do: {:noreply, state}
+  end
+
+  defmodule HelloApp do
+    @moduledoc false
+    # A minimal correctly-defined ExRatatui.App used to smoke-test the
+    # full adapter → Server → CellSession → cell_writer path.
+    use ExRatatui.App
+
+    alias ExRatatui.Layout.Rect
+    alias ExRatatui.Widgets.Paragraph
+
+    @impl true
+    def mount(_opts), do: {:ok, %{}}
+
+    @impl true
+    def render(_state, frame) do
+      [
+        {%Paragraph{text: "HI"},
+         %Rect{x: 0, y: 0, width: frame.width, height: frame.height}}
+      ]
+    end
+
+    @impl true
+    def handle_event(_event, state), do: {:noreply, state}
+  end
+
+  describe "mount/2 guard" do
+    test "raises a helpful error when the app module isn't `use ExRatatui.App`" do
+      msg =
+        try do
+          Adapter.mount([app: MerelyBehaviourApp], %Screen{module: Adapter})
+        rescue
+          e in ArgumentError -> Exception.message(e)
+        end
+
+      assert msg =~ "does not export __runtime__/0"
+      assert msg =~ "use ExRatatui.App"
+    end
+
+    test "raises a clear error when the app module can't be loaded at all" do
+      msg =
+        try do
+          Adapter.mount([app: NotAModule.At.All], %Screen{module: Adapter})
+        rescue
+          e in ArgumentError -> Exception.message(e)
+        end
+
+      assert msg =~ "could not be loaded"
+    end
+  end
+
   describe "handle_button/3" do
     test "forwards single A as Key{code: \"up\"} to the server" do
       screen = screen_with_server()
