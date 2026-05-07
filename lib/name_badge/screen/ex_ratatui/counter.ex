@@ -18,7 +18,7 @@ defmodule NameBadge.Screen.ExRatatui.Counter do
   the screen's mount args, not editing this module.
   """
 
-  @behaviour ExRatatui.App
+  use ExRatatui.App
 
   alias ExRatatui.Event.Key
   alias ExRatatui.Layout.Rect
