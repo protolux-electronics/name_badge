@@ -7,7 +7,7 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
   alias ExRatatui.Subscription
   alias ExRatatui.Text.Span
   alias ExRatatui.Widgets.{Block, Canvas, Paragraph}
-  alias ExRatatui.Widgets.Canvas.{Line, Points, Rectangle}
+  alias ExRatatui.Widgets.Canvas.Points
   alias NameBadge.Screen.ExRatatui.Goatmire
 
   describe "init/1" do
@@ -25,11 +25,10 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
                Goatmire.update({:event, key("up")}, %{tick: 7, paused?: true})
     end
 
-    test "A long (home) snaps the tail back to rest by zeroing tick" do
+    test "A long (home) snaps the goat back to the rest frame by zeroing tick" do
       assert {:noreply, %{tick: 0, paused?: false}} =
                Goatmire.update({:event, key("home")}, %{tick: 99, paused?: false})
 
-      # Reset is independent of paused state.
       assert {:noreply, %{tick: 0, paused?: true}} =
                Goatmire.update({:event, key("home")}, %{tick: 99, paused?: true})
     end
@@ -78,9 +77,37 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
     end
   end
 
+  describe "ascii_to_points/3" do
+    test "emits one coordinate per non-space character, with row 0 at y_origin" do
+      art = """
+        ##
+       ###
+      """
+
+      %Points{coords: coords, color: :white} = Goatmire.ascii_to_points(art, 0.0, 10.0)
+
+      # 5 non-space chars (`##` then `###`).
+      assert length(coords) == 5
+
+      # Row 0 ("  ##") sits on y_origin = 10.0; row 1 ("###") sits at 9.0.
+      ys = Enum.map(coords, fn {_x, y} -> y end) |> Enum.uniq() |> Enum.sort()
+      assert ys == [9.0, 10.0]
+
+      # Spaces don't emit pixels — row 1 is " ###", so the leading
+      # column is absent and we get coords at x = 1, 2, 3.
+      row_1_xs = for {x, 9.0} <- coords, do: x
+      assert row_1_xs == [1.0, 2.0, 3.0]
+    end
+
+    test "respects the x and y origins" do
+      %Points{coords: [{x, y}]} = Goatmire.ascii_to_points("#", 7.5, 3.0)
+      assert {x, y} == {7.5, 3.0}
+    end
+  end
+
   describe "render/2" do
     setup do
-      [widgets: Goatmire.render(%{tick: 4, paused?: false}, frame())]
+      [widgets: Goatmire.render(%{tick: 0, paused?: false}, frame())]
     end
 
     test "produces a bordered canvas plus a hint paragraph", %{widgets: widgets} do
@@ -96,38 +123,30 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
       assert %Paragraph{text: spans} = hint
       assert is_list(spans)
 
-      # Canvas takes everything but the bottom hint row.
+      # Canvas owns the screen above the hint row.
       assert canvas_rect.height == frame().height - 2
       assert hint_rect.y == frame().height - 1
     end
 
-    test "canvas carries the goat's static parts and the animated tail", %{widgets: widgets} do
+    test "the goat renders as a Points shape with many ink cells", %{widgets: widgets} do
       [{%Canvas{shapes: shapes}, _}, _] = widgets
 
-      assert %Rectangle{x: -12.0, width: 14.0} =
-               Enum.find(shapes, &match?(%Rectangle{x: -12.0}, &1))
-
-      assert %Rectangle{x: 2.0, width: 8.0} = Enum.find(shapes, &match?(%Rectangle{x: 2.0}, &1))
-
-      assert Enum.any?(shapes, &match?(%Points{coords: [{8.0, 6.0}]}, &1))
-
-      # 2 horns + 4 legs + 1 beard + 1 tail = 8 lines on the canvas.
-      lines = Enum.filter(shapes, &match?(%Line{}, &1))
-      assert length(lines) == 8
+      points = Enum.find(shapes, &match?(%Points{}, &1))
+      assert %Points{coords: coords} = points
+      # The pixel-art goat is a substantial silhouette; if it ever
+      # drops below this, something has gone wrong with the helper or
+      # the heredoc trimming.
+      assert length(coords) > 50
     end
 
-    test "tail tip moves between successive ticks (animation alive)" do
+    test "frames alternate between successive ticks (animation alive)" do
       [{%Canvas{shapes: shapes_a}, _}, _] = Goatmire.render(%{tick: 0, paused?: false}, frame())
-      [{%Canvas{shapes: shapes_b}, _}, _] = Goatmire.render(%{tick: 3, paused?: false}, frame())
+      [{%Canvas{shapes: shapes_b}, _}, _] = Goatmire.render(%{tick: 1, paused?: false}, frame())
 
-      tail_a = tail_line(shapes_a)
-      tail_b = tail_line(shapes_b)
+      coords_a = shapes_a |> points_coords() |> MapSet.new()
+      coords_b = shapes_b |> points_coords() |> MapSet.new()
 
-      # Tail base is fixed; tip should differ across ticks because of
-      # the sin(tick * step) factor.
-      assert {tail_a.x1, tail_a.y1} == {-12.0, 5.0}
-      assert {tail_b.x1, tail_b.y1} == {-12.0, 5.0}
-      refute {tail_a.x2, tail_a.y2} == {tail_b.x2, tail_b.y2}
+      refute MapSet.equal?(coords_a, coords_b)
     end
 
     test "hint reflects pause state" do
@@ -163,10 +182,9 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
   defp frame, do: %Rect{x: 0, y: 0, width: 66, height: 37}
   defp key(code), do: %Key{code: code, kind: "press", modifiers: []}
 
-  defp tail_line(shapes) do
-    Enum.find(shapes, fn
-      %Line{x1: -12.0, y1: 5.0} -> true
-      _ -> false
-    end)
+  defp points_coords(shapes) do
+    shapes
+    |> Enum.find(&match?(%Points{}, &1))
+    |> Map.get(:coords)
   end
 end

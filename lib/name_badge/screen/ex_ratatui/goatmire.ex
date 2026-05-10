@@ -3,27 +3,29 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
   Animated Goatmire-themed greeting card — the canvas-and-subscriptions
   showcase for the `NameBadge.Screen.ExRatatui` adapter.
 
-  Draws a chunky 1-bit goat on a `Canvas` with the `:block` marker so
-  it works on the e-ink font (which has no braille glyphs), then wags
-  the tail on a 1 s tick declared via
-  `ExRatatui.Subscription.interval/3`. Built on the reducer runtime —
-  one `update/2` clause per `{:event, …}` / `{:info, …}` shape — so it
-  doubles as a tour of how to write a self-ticking ExRatatui app.
+  Renders a 1-bit pixel-art goat by walking two ASCII-art frames
+  through `ascii_to_points/3` (each `#`/non-space character becomes a
+  block-marker cell on the canvas) and swapping between them on a 1 s
+  tick declared via `ExRatatui.Subscription.interval/3`. Built on the
+  reducer runtime — one `update/2` clause per `{:event, …}` /
+  `{:info, …}` shape — so it doubles as a tour of how to write a
+  self-ticking ExRatatui app. Chrome (outer block + bottom hint
+  strip) comes from `NameBadge.ExRatatui.DemoFrame` so every demo
+  uses the screen the same way.
 
-  The 1 s tick is tuned for the badge's UC8276 partial-refresh budget
-  (≈ 350 ms per refresh). On the simulator this looks slower than a
-  desktop animation would; that's deliberate, the app should look the
-  same place the firmware ends up running.
+  The 1 s tick is tuned for the badge's UC8276 partial-refresh
+  budget (≈ 350 ms). On the simulator this looks slower than a
+  desktop animation would; that's deliberate, the app should look
+  the same place the firmware ends up running.
 
-  ## Layout
+  ## Editing the goat
 
-      ┌─ hi from ex_ratatui ─────────────────────────┐
-      │                                              │
-      │           ╓─ goat goes here ─╖               │
-      │                                              │
-      └──────────────────────────────────────────────┘
-
-       [ A ] pause   [ A long ] reset   [ B long ] back
+  The pixel-art lives in two module attributes — `@frame_tail_down`
+  and `@frame_tail_up`. They're plain heredoc strings: `#` (or any
+  non-space character) is an ink pixel, ` ` is paper. To restyle
+  the goat, edit those strings; the frames don't need to be the
+  same width or height. The `@goat_origin_*` constants control
+  where the goat sits inside the canvas.
 
   ## Controls
 
@@ -37,43 +39,101 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
   use ExRatatui.App, runtime: :reducer
 
   alias ExRatatui.Event.Key
-  alias ExRatatui.Layout.Rect
-  alias ExRatatui.Style
   alias ExRatatui.Subscription
-  alias ExRatatui.Text.Span
-  alias ExRatatui.Widgets.{Block, Canvas, Paragraph}
-  alias ExRatatui.Widgets.Canvas.{Line, Points, Rectangle}
+  alias ExRatatui.Widgets.Canvas
+  alias ExRatatui.Widgets.Canvas.Points
+  alias NameBadge.ExRatatui.DemoFrame
 
-  @reversed %Style{modifiers: [:reversed]}
-
-  # Tail swing parameters: ~33° amplitude around 135° (up-left). With
-  # the 1 s tick and a 0.5 rad/tick advance, each full wag cycle takes
-  # ~12.5 s — slow enough for the e-ink partial refresh to keep up,
-  # fast enough that the user sees the tail move every second.
-  @tail_step 0.5
-  @tail_amplitude :math.pi() / 5.5
-  @tail_baseline :math.pi() * 3 / 4
-  @tail_length 6.0
   @tick_interval_ms 1_000
+
+  # Pixel-art goat in profile, head + horns on the right, body
+  # running horizontally across, four legs hanging down, tail next
+  # to the body on the left so they read as one silhouette. Two
+  # frames differ only in the tail position. Replace these heredocs
+  # with refined art any time — the renderer will pick up whatever
+  # shape they end up.
+  @frame_tail_down """
+                                          ###
+                                        ## ##
+                                       ##   ##
+                                      ##    ##
+                                      ##   ##
+                                       ## ##
+                                        ###
+                                       #####
+                                      ##oo##
+                                     ########
+   ###                          #############
+  ####                       ################
+   ###                     ###################
+                          #####################
+                         #######################
+                         #######################
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                          #    #    #    #
+  """
+
+  @frame_tail_up """
+                                          ###
+   ###                                  ## ##
+  ####                                 ##   ##
+   ###                                ##    ##
+                                      ##   ##
+                                       ## ##
+                                        ###
+                                       #####
+                                      ##oo##
+                                     ########
+                                #############
+                              ################
+                            ###################
+                          #####################
+                         #######################
+                         #######################
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                         ##  ##   ##   ##   ##
+                          #    #    #    #
+  """
+
+  @frames [@frame_tail_down, @frame_tail_up]
+
+  # Goat top-left in canvas units. The render uses 1:1 cell mapping
+  # (1 canvas unit == 1 cell), so these are roughly cell coordinates
+  # within the content area. Tuned so the silhouette sits roughly
+  # centered with the head poking up on the right.
+  @goat_origin_x 0.0
+  @goat_origin_y_top 30.0
 
   @impl ExRatatui.App
   def init(_opts), do: {:ok, %{tick: 0, paused?: false}}
 
   @impl ExRatatui.App
   def render(state, frame) do
-    canvas_rect = %Rect{x: 0, y: 0, width: frame.width, height: frame.height - 2}
-    hint_rect = %Rect{x: 2, y: frame.height - 1, width: frame.width - 4, height: 1}
+    {_block, block_rect, content_rect, hint_rect} = DemoFrame.layout("goatmire", frame)
 
+    # Canvas takes its own `:block` (the borders + title sit on the
+    # Canvas struct so the marker pixels paint inside them), so we
+    # discard the standalone DemoFrame block and paint the canvas
+    # across the same `block_rect`. Bounds are sized 1:1 with the
+    # inner content area — one canvas unit equals one cell, so pixel
+    # art stays square.
     canvas = %Canvas{
-      x_bounds: {-30.0, 30.0},
-      y_bounds: {-10.0, 14.0},
+      x_bounds: {0.0, content_rect.width * 1.0},
+      y_bounds: {0.0, content_rect.height * 1.0},
       marker: :block,
       shapes: goat_shapes(state),
-      block: %Block{title: " ex_ratatui · goatmire ", borders: [:all]}
+      block: DemoFrame.title_block("goatmire")
     }
 
     [
-      {canvas, canvas_rect},
+      {canvas, block_rect},
       {hint_paragraph(state), hint_rect}
     ]
   end
@@ -98,49 +158,51 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
     [Subscription.interval(:goat_tick, @tick_interval_ms, :tick)]
   end
 
-  # Goat geometry, in canvas units. Head on the right, tail on the
-  # left, only the tail moves. Coordinates are mathematical (Y grows
-  # up), bottom-left anchoring on rectangles per the Canvas widget.
   defp goat_shapes(state) do
-    body = %Rectangle{x: -12.0, y: -2.0, width: 14.0, height: 8.0, color: :white}
-    head = %Rectangle{x: 2.0, y: 2.0, width: 8.0, height: 7.0, color: :white}
-
-    horns = [
-      %Line{x1: 2.0, y1: 9.0, x2: 0.0, y2: 13.0, color: :white},
-      %Line{x1: 10.0, y1: 9.0, x2: 12.0, y2: 13.0, color: :white}
-    ]
-
-    eye = %Points{coords: [{8.0, 6.0}], color: :white}
-    beard = %Line{x1: 4.0, y1: 2.0, x2: 4.0, y2: -1.0, color: :white}
-
-    legs =
-      for x <- [-10.0, -8.0, 0.0, -2.0] do
-        %Line{x1: x, y1: -2.0, x2: x, y2: -7.0, color: :white}
-      end
-
-    [body, head, eye, beard, tail_shape(state) | horns ++ legs]
+    art = Enum.at(@frames, rem(state.tick, length(@frames)))
+    [ascii_to_points(art, @goat_origin_x, @goat_origin_y_top)]
   end
 
-  defp tail_shape(state) do
-    angle = @tail_baseline + @tail_amplitude * :math.sin(state.tick * @tail_step)
-    {bx, by} = {-12.0, 5.0}
-    tx = bx + @tail_length * :math.cos(angle)
-    ty = by + @tail_length * :math.sin(angle)
-    %Line{x1: bx, y1: by, x2: tx, y2: ty, color: :white}
+  @doc """
+  Walks an ASCII-art string and emits a single
+  `%ExRatatui.Widgets.Canvas.Points{}` carrying one coordinate per
+  non-space character. Row 0 of the art lines up with `y_origin`;
+  each subsequent row sits one canvas-unit below. Designed to be
+  fed straight into a `:block`-marker `Canvas` whose bounds are
+  sized 1:1 with cells.
+
+  Public so tests and refinement scripts can call it without
+  reaching into the module's private API.
+  """
+  @spec ascii_to_points(String.t(), number(), number()) :: Points.t()
+  def ascii_to_points(art, x_origin, y_origin) when is_binary(art) do
+    coords =
+      art
+      |> String.split("\n")
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {row_str, row} ->
+        row_str
+        |> String.graphemes()
+        |> Enum.with_index()
+        |> Enum.flat_map(fn
+          {" ", _col} -> []
+          {_char, col} -> [{x_origin + col * 1.0, y_origin - row * 1.0}]
+        end)
+      end)
+
+    %Points{coords: coords, color: :white}
   end
 
   defp hint_paragraph(state) do
-    pause_label = if state.paused?, do: "  resume   ", else: "  pause    "
+    pause_label = if state.paused?, do: " resume   ", else: " pause    "
 
-    spans = [
-      %Span{content: " A ", style: @reversed},
-      %Span{content: pause_label},
-      %Span{content: " A long ", style: @reversed},
-      %Span{content: "  reset    "},
-      %Span{content: " B long ", style: @reversed},
-      %Span{content: "  back"}
-    ]
-
-    %Paragraph{text: spans}
+    DemoFrame.hint([
+      {" A ", :chip},
+      {pause_label, :label},
+      {" A long ", :chip},
+      {" reset    ", :label},
+      {" B long ", :chip},
+      {" back", :label}
+    ])
   end
 end
