@@ -27,18 +27,19 @@ defmodule NameBadge.ExRatatui.Raster do
 
   ## Style support
 
-  The 1-bit display has no concept of color, so any non-default
-  `bg` color or the `:reversed` modifier collapses to "this cell is
-  inverted": the glyph paints as paper on an ink background, instead
-  of ink on paper. The `fg` color is otherwise ignored — there is
-  only ink. Other modifiers (bold, italic, underlined, …) are
-  ignored. `:skip` cells render as paper.
+  The 1-bit display has no concept of color, so inversion has to be
+  asked for explicitly. A cell paints paper-on-ink only when the
+  `:reversed` modifier is set or `bg` is `:black`; everything else —
+  including `bg: :white` (which the `Canvas` widget emits by default
+  for shape cells) and any other ANSI color — paints ink-on-paper.
+  The `fg` color is ignored entirely. Other modifiers (bold, italic,
+  underlined, …) are ignored too. `:skip` cells render as paper.
 
-  | Cell shape                                      | Pixels        |
-  | ----------------------------------------------- | ------------- |
-  | `bg: :reset`, no `:reversed`                    | ink-on-paper  |
-  | `bg: <any non-`:reset`>`, or `:reversed` in mods| paper-on-ink  |
-  | `:skip: true`                                   | all paper     |
+  | Cell shape                                       | Pixels        |
+  | ------------------------------------------------ | ------------- |
+  | `:reversed` in modifiers, or `bg: :black`        | paper-on-ink  |
+  | anything else                                    | ink-on-paper  |
+  | `:skip: true`                                    | all paper     |
 
   Bold-as-double-strike, underline-as-bottom-row, and grayscale `fg`
   / `bg` mappings are deferred until a demo needs them.
@@ -168,9 +169,11 @@ defmodule NameBadge.ExRatatui.Raster do
 
   # Returns the {ink_byte, paper_byte} pair to use for a cell. On the
   # 1-bit e-ink display, "color" collapses to "are we inverted?" — a
-  # cell with a non-default bg or the `:reversed` modifier paints
-  # paper glyphs on an ink background; everything else paints the
-  # other way around.
+  # cell paints paper glyphs on an ink background only when the user
+  # explicitly asked for it via the `:reversed` modifier or
+  # `bg: :black`. Other bg colors (notably `:white`, which the Canvas
+  # widget emits as its default fill) leave the cell rendering
+  # ink-on-paper.
   defp ink_and_paper(%Cell{bg: bg, modifiers: modifiers}) do
     if inverted?(bg, modifiers) do
       {@paper, @ink}
@@ -179,8 +182,8 @@ defmodule NameBadge.ExRatatui.Raster do
     end
   end
 
-  defp inverted?(:reset, modifiers), do: :reversed in modifiers
-  defp inverted?(_bg, _modifiers), do: true
+  defp inverted?(:black, _modifiers), do: true
+  defp inverted?(_bg, modifiers), do: :reversed in modifiers
 
   defp codepoint_of(""), do: ?\s
 

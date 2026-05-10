@@ -83,11 +83,8 @@ defmodule NameBadge.ExRatatui.RasterTest do
   end
 
   describe "style: inversion" do
-    test "a cell with a non-default bg paints paper-on-ink (filling the whole cell rect)" do
-      inverted = %Cell{
-        cell(0, 0, "A")
-        | bg: :white
-      }
+    test "a cell with `bg: :black` paints paper-on-ink (filling the whole cell rect)" do
+      inverted = %Cell{cell(0, 0, "A") | bg: :black}
 
       bin =
         Raster.new()
@@ -121,6 +118,22 @@ defmodule NameBadge.ExRatatui.RasterTest do
 
       assert byte_at(bin, 1, 0) == 255
       assert byte_at(bin, 5, 0) == 0
+    end
+
+    test "`bg: :white` does NOT invert — the Canvas widget emits this for shape cells" do
+      # On a 1-bit display, white is paper, not "a colored bg". This
+      # guards the regression that used to hide every Canvas shape on
+      # the badge: shapes painted as `█` came in with `bg: :white` and
+      # the rasterer flipped them to paper-on-ink, drawing nothing.
+      cell_white_bg = %Cell{cell(0, 0, "A") | bg: :white}
+
+      bin =
+        Raster.new()
+        |> Raster.put_snapshot(snapshot([cell_white_bg]))
+        |> Raster.to_grayscale()
+
+      assert byte_at(bin, 1, 0) == 0
+      assert byte_at(bin, 5, 0) == 255
     end
 
     test "default styling is unchanged (still ink-on-paper)" do
