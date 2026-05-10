@@ -139,18 +139,18 @@ defmodule NameBadge.Screen.ExRatatui.GoathiTest do
       assert hint_rect.y == frame().height - 1
     end
 
-    test "the goat renders as a Points shape with many ink cells", %{widgets: widgets} do
+    test "the face renders as a Points shape with many ink cells", %{widgets: widgets} do
       [{%Canvas{shapes: shapes}, _}, _] = widgets
 
-      assert length(shapes) >= 1
+      assert length(shapes) >= 2
 
-      # The goat itself is whichever Points shape has the most ink —
-      # the HI! word is the smaller one when it's visible.
-      goat = shapes |> Enum.map(& &1.coords) |> Enum.max_by(&length/1)
-      # The pixel-art goat is a substantial silhouette; if it ever
+      # The face contour is whichever Points shape has the most ink —
+      # the eye and HI! shapes are tiny by comparison.
+      face = shapes |> Enum.map(& &1.coords) |> Enum.max_by(&length/1)
+      # The pixel-art face is a substantial silhouette; if it ever
       # drops below this, something has gone wrong with the helper or
       # the heredoc trimming.
-      assert length(goat) > 50
+      assert length(face) > 50
     end
 
     test "frames alternate between successive ticks (animation alive)" do
@@ -163,17 +163,29 @@ defmodule NameBadge.Screen.ExRatatui.GoathiTest do
       refute MapSet.equal?(coords_a, coords_b)
     end
 
-    test "HI! word is present on even ticks and absent on odd ones" do
+    test "even ticks show HI! plus a winked right-eye dash; odd ticks show neither" do
       [{%Canvas{shapes: shapes_even}, _}, _] =
         Goathi.render(%{tick: 0, paused?: false}, frame())
 
       [{%Canvas{shapes: shapes_odd}, _}, _] =
         Goathi.render(%{tick: 1, paused?: false}, frame())
 
-      # Two Points shapes when HI! is visible (HI! + goat), one when
-      # it's hidden.
-      assert length(shapes_even) == 2
-      assert length(shapes_odd) == 1
+      # Even tick: HI! + right-eye dash + face = 3 shapes.
+      # Odd tick:  right-eye open + face = 2 shapes.
+      assert length(shapes_even) == 3
+      assert length(shapes_odd) == 2
+
+      # The right eye lives at canvas (x, y) in the box {49..51, 22..23}.
+      # On even ticks only the bottom row is filled (the dash, 1×3),
+      # on odd ticks the whole 2×3 block is filled.
+      right_eye_count = fn shapes ->
+        shapes
+        |> all_coords()
+        |> Enum.count(fn {x, y} -> x in [49.0, 50.0, 51.0] and y in [22.0, 23.0] end)
+      end
+
+      assert right_eye_count.(shapes_even) == 3
+      assert right_eye_count.(shapes_odd) == 6
     end
 
     test "hint reflects pause state" do
