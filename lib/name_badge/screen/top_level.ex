@@ -8,7 +8,7 @@ defmodule NameBadge.Screen.TopLevel do
     {Screen.Gallery, "Gallery"},
     {Screen.Snake, "Snake"},
     {Screen.Counter, "Counter"},
-    {Screen.Goatmire, "Goatmire"},
+    {Screen.Goathi, "Goathi"},
     {Screen.Stats, "Stats"},
     {Screen.Weather, "Weather"},
     {Screen.Settings, "Device Settings"}

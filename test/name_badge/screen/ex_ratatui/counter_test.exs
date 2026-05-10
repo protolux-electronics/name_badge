@@ -49,7 +49,7 @@ defmodule NameBadge.Screen.ExRatatui.CounterTest do
 
       [{block, block_rect}, {count, count_rect}, {hint, hint_rect}] = widgets
 
-      assert %Block{title: " ex_ratatui · counter ", borders: [:all]} = block
+      assert %Block{title: " ex_ratatui - counter ", borders: [:all]} = block
       assert %Paragraph{text: "count: 7", alignment: :center} = count
       assert %Paragraph{text: spans} = hint
       assert is_list(spans)

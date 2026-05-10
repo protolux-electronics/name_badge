@@ -85,7 +85,7 @@ defmodule NameBadge.ExRatatui.DemoFrame do
   """
   @spec title_block(String.t()) :: Block.t()
   def title_block(title) when is_binary(title) do
-    %Block{title: " ex_ratatui · #{title} ", borders: [:all]}
+    %Block{title: " ex_ratatui - #{title} ", borders: [:all]}
   end
 
   @doc """

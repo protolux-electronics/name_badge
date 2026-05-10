@@ -17,6 +17,26 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       assert is_map(state.sample)
       assert is_list(state.memory_history) and length(state.memory_history) == 1
       assert is_list(state.reds_history) and length(state.reds_history) == 1
+      assert is_list(state.queue_history) and length(state.queue_history) == 1
+    end
+
+    test "the seeded sample carries memory breakdown and limits" do
+      {:ok, state} = Stats.init([])
+      sample = state.sample
+
+      # Five categories that partition `:erlang.memory/0` into the
+      # buckets the bar chart visualizes.
+      assert is_map(sample.mem_breakdown)
+
+      assert Map.keys(sample.mem_breakdown) |> Enum.sort() ==
+               [:atom, :binary, :code, :ets, :processes]
+
+      # Limits should always come back as positive integers from the
+      # live VM so the gauges have a stable denominator.
+      assert sample.proc_limit > 0
+      assert sample.atom_limit > 0
+      assert sample.atom_count >= 0
+      assert sample.queue_len >= 0
     end
   end
 
@@ -43,11 +63,13 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       assert m3 == :reductions
     end
 
-    test "home (A long) clears histories and re-seeds with one fresh sample", %{state: state} do
+    test "home (A long) clears all three histories and re-seeds a fresh sample",
+         %{state: state} do
       state = %{
         state
         | memory_history: [10, 20, 30],
           reds_history: [1, 2, 3],
+          queue_history: [4, 5, 6],
           last_reductions: 999_999
       }
 
@@ -55,6 +77,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
 
       assert length(after_reset.memory_history) == 1
       assert length(after_reset.reds_history) == 1
+      assert length(after_reset.queue_history) == 1
       # last_reductions was reset to nil before refresh ran, so the
       # delta on the seeded sample is zero.
       assert hd(after_reset.reds_history) == 0
@@ -71,11 +94,12 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       [state: state]
     end
 
-    test "appends a new sample to both histories", %{state: state} do
+    test "appends a new sample to all three histories", %{state: state} do
       assert {:noreply, after_tick} = Stats.update({:info, :refresh}, state)
 
       assert length(after_tick.memory_history) == length(state.memory_history) + 1
       assert length(after_tick.reds_history) == length(state.reds_history) + 1
+      assert length(after_tick.queue_history) == length(state.queue_history) + 1
     end
 
     test "is a no-op when paused", %{state: state} do
@@ -92,6 +116,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
 
       assert length(saturated.memory_history) == 50
       assert length(saturated.reds_history) == 50
+      assert length(saturated.queue_history) == 50
     end
 
     test "ignores unrelated info messages", %{state: state} do
@@ -112,7 +137,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
 
       # Refresh must clear the badge's UC8276 partial-refresh budget
       # (≈ 350 ms) with comfortable margin since each tick repaints
-      # the sparklines and the top-N panel.
+      # the bar chart, gauges, sparklines, and the top-N panel.
       assert interval >= 1_000
     end
   end
@@ -123,17 +148,75 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       [state: state, widgets: Stats.render(state, frame())]
     end
 
-    test "produces the bordered system block, two stat lines, two sparklines, top header, hint, and top rows",
+    test "wraps each section in its own titled block on top of the outer chrome",
          %{widgets: widgets} do
-      # 1 block + 1 top-header + 1 hint + 2 stat rows + 4 sparkline-related (2 labels + 2 charts) + N top rows.
-      block = Enum.find(widgets, &match?({%Block{}, _}, &1))
-      assert {%Block{title: " ex_ratatui · stats ", borders: [:all]}, _} = block
+      titles = block_titles(widgets)
 
+      # Outer DemoFrame block plus one block per section.
+      assert " ex_ratatui - stats " in titles
+      assert " summary " in titles
+      assert " memory by category " in titles
+      assert " limits " in titles
+      assert " trends " in titles
+      assert Enum.any?(titles, &String.starts_with?(&1, " top by "))
+
+      # Three sparklines: memory, work/sec, run queue.
       sparklines = Enum.filter(widgets, &match?({%Sparkline{}, _}, &1))
-      assert length(sparklines) == 2
+      assert length(sparklines) == 3
 
       for {%Sparkline{bar_set: bar_set}, _} <- sparklines do
         assert bar_set == [" ", "▄", "█"]
+      end
+    end
+
+    test "summary content reports uptime and process count in plain English",
+         %{widgets: widgets} do
+      texts = paragraph_texts(widgets)
+      assert Enum.any?(texts, &(&1 =~ "BEAM live" and &1 =~ "uptime" and &1 =~ "processes"))
+    end
+
+    test "memory section renders one filled bar row per category",
+         %{widgets: widgets} do
+      texts = paragraph_texts(widgets)
+
+      for label <- ["proc", "bin", "ets", "code", "atom"] do
+        assert Enum.any?(texts, &(String.contains?(&1, label) and String.contains?(&1, "█"))),
+               "expected a filled bar row for category #{label}"
+      end
+    end
+
+    test "top-by block title reflects the cycled metric", %{state: state} do
+      titles_for = fn metric ->
+        Stats.render(%{state | metric: metric}, frame()) |> block_titles()
+      end
+
+      assert " top by reductions " in titles_for.(:reductions)
+      assert " top by memory " in titles_for.(:memory)
+      assert " top by message_queue_len " in titles_for.(:message_queue_len)
+    end
+
+    test "gauge rows show value/limit suffixes for processes and atoms",
+         %{widgets: widgets} do
+      texts = paragraph_texts(widgets)
+
+      assert Enum.any?(texts, fn t ->
+               String.starts_with?(t, "processes") and String.contains?(t, " / ") and
+                 String.contains?(t, "[")
+             end)
+
+      assert Enum.any?(texts, fn t ->
+               String.starts_with?(t, "atoms") and String.contains?(t, " / ") and
+                 String.contains?(t, "[")
+             end)
+    end
+
+    test "sparklines are labelled memory / work/sec / run queue",
+         %{widgets: widgets} do
+      texts = paragraph_texts(widgets)
+
+      for label <- ["memory   ", "work/sec ", "run queue"] do
+        assert Enum.any?(texts, &(&1 == label)),
+               "expected a sparkline label row for #{inspect(label)}"
       end
     end
 
@@ -172,5 +255,21 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       Enum.find(widgets, fn {_widget, %Rect{y: y}} -> y == frame().height - 1 end)
 
     [{:hint_marker, nil}, {hint_w, hint_r}]
+  end
+
+  defp block_titles(widgets) do
+    widgets
+    |> Enum.flat_map(fn
+      {%Block{title: title}, _} when is_binary(title) -> [title]
+      _ -> []
+    end)
+  end
+
+  defp paragraph_texts(widgets) do
+    widgets
+    |> Enum.flat_map(fn
+      {%Paragraph{text: text}, _} when is_binary(text) -> [text]
+      _ -> []
+    end)
   end
 end
