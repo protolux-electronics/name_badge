@@ -41,18 +41,15 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
   alias ExRatatui.Event.Key
   alias ExRatatui.Layout.Rect
-  alias ExRatatui.Style
   alias ExRatatui.Subscription
-  alias ExRatatui.Text.Span
-  alias ExRatatui.Widgets.{Block, Paragraph, Sparkline}
+  alias ExRatatui.Widgets.{Paragraph, Sparkline}
+  alias NameBadge.ExRatatui.DemoFrame
 
   @history_len 50
-  @top_n 5
+  @top_n 10
   @metrics [:reductions, :memory, :message_queue_len]
   @bar_set [" ", "▄", "█"]
   @refresh_interval_ms 3_000
-
-  @reversed %Style{modifiers: [:reversed]}
 
   @typedoc false
   @type metric :: :reductions | :memory | :message_queue_len
@@ -92,47 +89,66 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
   @impl ExRatatui.App
   def render(state, frame) do
-    block_rect = %Rect{x: 0, y: 0, width: frame.width, height: frame.height - 2}
-    inner_x = block_rect.x + 2
-    inner_w = block_rect.width - 4
-
+    {block, block_rect, content_rect, hint_rect} = DemoFrame.layout("stats", frame)
     sample = state.sample || empty_sample()
 
-    rows = [
-      {row(0), "uptime: #{format_uptime(sample.uptime_ms)}    procs: #{sample.procs}"},
-      {row(1),
-       "memory: #{format_kib(sample.memory_kib)}     reds/s: #{format_count(sample.reds_delta)}"}
+    # Lay the content out on a row grid that breathes — pad blank
+    # rows between sections so the screen doesn't bunch at the top.
+    inner_x = content_rect.x + 1
+    inner_w = content_rect.width - 2
+    label_w = 8
+
+    summary = [
+      {0, "uptime: #{format_uptime(sample.uptime_ms)}    procs: #{sample.procs}"},
+      {1,
+       "memory: #{format_kib(sample.memory_kib)}    reds/s: #{format_count(sample.reds_delta)}"}
     ]
 
-    text_widgets =
-      for {y, text} <- rows do
-        {%Paragraph{text: text}, %Rect{x: inner_x, y: y, width: inner_w, height: 1}}
+    summary_widgets =
+      for {dy, text} <- summary do
+        {%Paragraph{text: text},
+         %Rect{x: inner_x, y: content_rect.y + dy, width: inner_w, height: 1}}
       end
 
+    sparkline_y = content_rect.y + 3
+
     sparkline_widgets = [
-      {%Paragraph{text: "memory"}, %Rect{x: inner_x, y: row(3), width: 8, height: 1}},
-      {%Sparkline{data: state.memory_history, bar_set: @bar_set, max: nil},
-       %Rect{x: inner_x + 8, y: row(3), width: inner_w - 8, height: 1}},
-      {%Paragraph{text: "reds/s"}, %Rect{x: inner_x, y: row(4), width: 8, height: 1}},
-      {%Sparkline{data: state.reds_history, bar_set: @bar_set, max: nil},
-       %Rect{x: inner_x + 8, y: row(4), width: inner_w - 8, height: 1}}
+      {%Paragraph{text: "memory"}, %Rect{x: inner_x, y: sparkline_y, width: label_w, height: 1}},
+      {%Sparkline{data: state.memory_history, bar_set: @bar_set},
+       %Rect{
+         x: inner_x + label_w,
+         y: sparkline_y,
+         width: inner_w - label_w,
+         height: 1
+       }},
+      {%Paragraph{text: "reds/s"},
+       %Rect{x: inner_x, y: sparkline_y + 2, width: label_w, height: 1}},
+      {%Sparkline{data: state.reds_history, bar_set: @bar_set},
+       %Rect{
+         x: inner_x + label_w,
+         y: sparkline_y + 2,
+         width: inner_w - label_w,
+         height: 1
+       }}
     ]
 
-    top_header = "── top by #{Atom.to_string(state.metric)} ──"
+    top_header_y = sparkline_y + 4
 
-    top_lines =
-      sample.top
-      |> Enum.with_index()
-      |> Enum.map(fn {{pid, label, value}, idx} ->
-        {%Paragraph{text: format_top_line(pid, label, value, state.metric, inner_w)},
-         %Rect{x: inner_x, y: row(7 + idx), width: inner_w, height: 1}}
-      end)
+    top_widgets = [
+      {%Paragraph{text: "── top by #{Atom.to_string(state.metric)} ──"},
+       %Rect{x: inner_x, y: top_header_y, width: inner_w, height: 1}}
+      | sample.top
+        |> Enum.with_index()
+        |> Enum.map(fn {{pid, label, value}, idx} ->
+          {%Paragraph{text: format_top_line(pid, label, value, state.metric, inner_w)},
+           %Rect{x: inner_x, y: top_header_y + 1 + idx, width: inner_w, height: 1}}
+        end)
+    ]
 
-    [
-      {%Block{title: " ex_ratatui · stats ", borders: [:all]}, block_rect},
-      {%Paragraph{text: top_header}, %Rect{x: inner_x, y: row(6), width: inner_w, height: 1}},
-      {hint_paragraph(state), %Rect{x: 2, y: frame.height - 1, width: frame.width - 4, height: 1}}
-    ] ++ text_widgets ++ sparkline_widgets ++ top_lines
+    [{block, block_rect}, {hint_paragraph(state), hint_rect}]
+    |> Kernel.++(summary_widgets)
+    |> Kernel.++(sparkline_widgets)
+    |> Kernel.++(top_widgets)
   end
 
   @impl ExRatatui.App
@@ -273,20 +289,16 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   defp empty_sample,
     do: %{uptime_ms: 0, memory_kib: 0, reds_delta: 0, procs: 0, top: []}
 
-  defp row(n), do: 1 + n
-
   defp hint_paragraph(state) do
-    pause_label = if state.paused?, do: "  resume   ", else: "  pause    "
+    pause_label = if state.paused?, do: " resume   ", else: " pause    "
 
-    spans = [
-      %Span{content: " A ", style: @reversed},
-      %Span{content: pause_label},
-      %Span{content: " B ", style: @reversed},
-      %Span{content: "  cycle    "},
-      %Span{content: " B long ", style: @reversed},
-      %Span{content: "  back"}
-    ]
-
-    %Paragraph{text: spans}
+    DemoFrame.hint([
+      {" A ", :chip},
+      {pause_label, :label},
+      {" B ", :chip},
+      {" cycle    ", :label},
+      {" B long ", :chip},
+      {" back", :label}
+    ])
   end
 end
