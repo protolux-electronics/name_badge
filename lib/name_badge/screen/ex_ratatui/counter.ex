@@ -62,7 +62,7 @@ defmodule NameBadge.Screen.ExRatatui.Counter do
     hint_y = block_rect.y + block_rect.height + 2
 
     [
-      {%Block{title: " counter ", borders: [:all]}, block_rect},
+      {%Block{title: " ex_ratatui · counter ", borders: [:all]}, block_rect},
       {%Paragraph{text: "count: #{state.count}", alignment: :center}, count_rect},
       {hint_paragraph([
          {" A ", :reversed},

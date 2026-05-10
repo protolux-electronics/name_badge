@@ -1,11 +1,15 @@
 defmodule NameBadge.Screen.ExRatatui.Stats do
   @moduledoc """
   Live BEAM system monitor — the data-driven showcase for
-  `NameBadge.Screen.ExRatatui`. Refreshes once per second through an
-  interval subscription, keeps a rolling 60-sample history of memory
-  and reduction throughput, and renders both as `Sparkline`s using a
-  three-level bar set (`" "`, `"▄"`, `"█"`) that the badge font
-  ships glyphs for.
+  `NameBadge.Screen.ExRatatui`. Refreshes every 3 seconds through an
+  interval subscription, keeps a rolling 50-sample history of memory
+  and reduction throughput (≈ 2.5 minutes), and renders both as
+  `Sparkline`s using a three-level bar set (`" "`, `"▄"`, `"█"`) that
+  the badge font ships glyphs for.
+
+  The 3 s cadence is tuned for the badge's UC8276 partial-refresh
+  budget — every tick produces a new frame for memory, reductions,
+  and the top-N panel, and at 3 s the panel keeps up without queueing.
 
   Process metric is user-cyclable: reductions / memory / message
   queue length. The metric drives the bottom "top processes" panel.
@@ -46,6 +50,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   @top_n 5
   @metrics [:reductions, :memory, :message_queue_len]
   @bar_set [" ", "▄", "█"]
+  @refresh_interval_ms 3_000
 
   @reversed %Style{modifiers: [:reversed]}
 
@@ -124,7 +129,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
       end)
 
     [
-      {%Block{title: " system ", borders: [:all]}, block_rect},
+      {%Block{title: " ex_ratatui · stats ", borders: [:all]}, block_rect},
       {%Paragraph{text: top_header}, %Rect{x: inner_x, y: row(6), width: inner_w, height: 1}},
       {hint_paragraph(state), %Rect{x: 2, y: frame.height - 1, width: frame.width - 4, height: 1}}
     ] ++ text_widgets ++ sparkline_widgets ++ top_lines
@@ -148,7 +153,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
   @impl ExRatatui.App
   def subscriptions(_state) do
-    [Subscription.interval(:stats_refresh, 1_000, :refresh)]
+    [Subscription.interval(:stats_refresh, @refresh_interval_ms, :refresh)]
   end
 
   # Pure refresh: takes a state, samples the BEAM, returns the new state.

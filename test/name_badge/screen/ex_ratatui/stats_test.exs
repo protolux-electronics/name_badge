@@ -100,15 +100,20 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
   end
 
   describe "subscriptions/1" do
-    test "registers a 1 s refresh subscription with a stable id" do
+    test "registers a hardware-friendly refresh subscription with a stable id" do
       assert [
                %Subscription{
                  id: :stats_refresh,
                  kind: :interval,
-                 interval_ms: 1_000,
+                 interval_ms: interval,
                  message: :refresh
                }
              ] = Stats.subscriptions(%{})
+
+      # Refresh must clear the badge's UC8276 partial-refresh budget
+      # (≈ 350 ms) with comfortable margin since each tick repaints
+      # the sparklines and the top-N panel.
+      assert interval >= 1_000
     end
   end
 
@@ -122,7 +127,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
          %{widgets: widgets} do
       # 1 block + 1 top-header + 1 hint + 2 stat rows + 4 sparkline-related (2 labels + 2 charts) + N top rows.
       block = Enum.find(widgets, &match?({%Block{}, _}, &1))
-      assert {%Block{title: " system ", borders: [:all]}, _} = block
+      assert {%Block{title: " ex_ratatui · stats ", borders: [:all]}, _} = block
 
       sparklines = Enum.filter(widgets, &match?({%Sparkline{}, _}, &1))
       assert length(sparklines) == 2

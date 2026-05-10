@@ -5,10 +5,15 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
 
   Draws a chunky 1-bit goat on a `Canvas` with the `:block` marker so
   it works on the e-ink font (which has no braille glyphs), then wags
-  the tail by re-rendering on a 250 ms tick declared via
+  the tail on a 1 s tick declared via
   `ExRatatui.Subscription.interval/3`. Built on the reducer runtime —
   one `update/2` clause per `{:event, …}` / `{:info, …}` shape — so it
   doubles as a tour of how to write a self-ticking ExRatatui app.
+
+  The 1 s tick is tuned for the badge's UC8276 partial-refresh budget
+  (≈ 350 ms per refresh). On the simulator this looks slower than a
+  desktop animation would; that's deliberate, the app should look the
+  same place the firmware ends up running.
 
   ## Layout
 
@@ -41,12 +46,15 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
 
   @reversed %Style{modifiers: [:reversed]}
 
-  # Tail swing parameters: ~33° amplitude around 135° (up-left), one
-  # full cycle per ~5.2 seconds at the 250 ms tick.
-  @tail_step 0.3
+  # Tail swing parameters: ~33° amplitude around 135° (up-left). With
+  # the 1 s tick and a 0.5 rad/tick advance, each full wag cycle takes
+  # ~12.5 s — slow enough for the e-ink partial refresh to keep up,
+  # fast enough that the user sees the tail move every second.
+  @tail_step 0.5
   @tail_amplitude :math.pi() / 5.5
   @tail_baseline :math.pi() * 3 / 4
   @tail_length 6.0
+  @tick_interval_ms 1_000
 
   @impl ExRatatui.App
   def init(_opts), do: {:ok, %{tick: 0, paused?: false}}
@@ -61,7 +69,7 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
       y_bounds: {-10.0, 14.0},
       marker: :block,
       shapes: goat_shapes(state),
-      block: %Block{title: " hi from ex_ratatui ", borders: [:all]}
+      block: %Block{title: " ex_ratatui · goatmire ", borders: [:all]}
     }
 
     [
@@ -87,7 +95,7 @@ defmodule NameBadge.Screen.ExRatatui.Goatmire do
 
   @impl ExRatatui.App
   def subscriptions(_state) do
-    [Subscription.interval(:goat_tick, 250, :tick)]
+    [Subscription.interval(:goat_tick, @tick_interval_ms, :tick)]
   end
 
   # Goat geometry, in canvas units. Head on the right, tail on the

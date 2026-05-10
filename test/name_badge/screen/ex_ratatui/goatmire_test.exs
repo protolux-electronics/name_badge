@@ -62,9 +62,19 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
   end
 
   describe "subscriptions/1" do
-    test "registers a 250 ms tick subscription with a stable id" do
-      assert [%Subscription{id: :goat_tick, kind: :interval, interval_ms: 250, message: :tick}] =
-               Goatmire.subscriptions(%{tick: 0, paused?: false})
+    test "registers a hardware-friendly tick subscription with a stable id" do
+      assert [
+               %Subscription{
+                 id: :goat_tick,
+                 kind: :interval,
+                 interval_ms: interval,
+                 message: :tick
+               }
+             ] = Goatmire.subscriptions(%{tick: 0, paused?: false})
+
+      # Tick must clear the badge's UC8276 partial-refresh budget
+      # (≈ 350 ms) with margin so frames don't queue on hardware.
+      assert interval >= 700
     end
   end
 
@@ -80,7 +90,7 @@ defmodule NameBadge.Screen.ExRatatui.GoatmireTest do
 
       assert %Canvas{
                marker: :block,
-               block: %Block{title: " hi from ex_ratatui ", borders: [:all]}
+               block: %Block{title: " ex_ratatui · goatmire ", borders: [:all]}
              } = canvas
 
       assert %Paragraph{text: spans} = hint
