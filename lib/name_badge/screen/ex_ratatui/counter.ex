@@ -6,7 +6,7 @@ defmodule NameBadge.Screen.ExRatatui.Counter do
 
   ## Layout
 
-      ┌─ ex_ratatui · counter ───────────────────────┐
+      ┌─ ex_ratatui - counter ───────────────────────┐
       │                                              │
       │                                              │
       │                 count: 42                    │

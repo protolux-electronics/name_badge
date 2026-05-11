@@ -134,6 +134,20 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       assert {:noreply, ^in_flight} = Stats.update({:info, :refresh}, in_flight)
     end
 
+    test ":sample_taken arriving after pause discards the sample but resets in_flight?",
+         %{state: state, sample: sample} do
+      paused_in_flight = %{state | paused?: true, in_flight?: true}
+
+      assert {:noreply, after_late_sample} =
+               Stats.update({:info, {:sample_taken, sample}}, paused_in_flight)
+
+      assert after_late_sample.in_flight? == false
+      assert after_late_sample.paused? == true
+      assert after_late_sample.memory_history == state.memory_history
+      assert after_late_sample.reds_history == state.reds_history
+      assert after_late_sample.queue_history == state.queue_history
+    end
+
     test "history is capped at 50 samples", %{state: state, sample: sample} do
       saturated =
         Enum.reduce(1..60, state, fn _, acc ->

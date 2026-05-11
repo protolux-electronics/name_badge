@@ -193,6 +193,13 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
     {:noreply, %{state | in_flight?: true}, commands: [cmd], render?: false}
   end
 
+  def update({:info, {:sample_taken, _sample}}, %{paused?: true} = state) do
+    # A sample that was already in flight when the user pressed pause
+    # still arrives; honour the pause by discarding it. Without this
+    # the dashboard advances one tick past where the user froze it.
+    {:noreply, %{state | in_flight?: false}}
+  end
+
   def update({:info, {:sample_taken, sample}}, state) do
     {:noreply, fold_sample(state, sample) |> Map.put(:in_flight?, false)}
   end
