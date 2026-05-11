@@ -9,6 +9,7 @@ defmodule NameBadge.Screen.ExRatatui.GoathiTest do
   alias ExRatatui.Widgets.{Block, Canvas, Paragraph}
   alias ExRatatui.Widgets.Canvas.Points
   alias NameBadge.Screen.ExRatatui.Goathi
+  alias NameBadge.Screen.ExRatatui.Goathi.Art
 
   describe "init/1" do
     test "starts at tick 0 and unpaused" do
@@ -88,14 +89,14 @@ defmodule NameBadge.Screen.ExRatatui.GoathiTest do
     end
   end
 
-  describe "ascii_to_points/3" do
+  describe "Art.ascii_to_points/3" do
     test "emits one coordinate per non-space character, with row 0 at y_origin" do
       art = """
         ##
        ###
       """
 
-      %Points{coords: coords, color: :white} = Goathi.ascii_to_points(art, 0.0, 10.0)
+      %Points{coords: coords, color: :white} = Art.ascii_to_points(art, 0.0, 10.0)
 
       # 5 non-space chars (`##` then `###`).
       assert length(coords) == 5
@@ -111,7 +112,7 @@ defmodule NameBadge.Screen.ExRatatui.GoathiTest do
     end
 
     test "respects the x and y origins" do
-      %Points{coords: [{x, y}]} = Goathi.ascii_to_points("#", 7.5, 3.0)
+      %Points{coords: [{x, y}]} = Art.ascii_to_points("#", 7.5, 3.0)
       assert {x, y} == {7.5, 3.0}
     end
   end

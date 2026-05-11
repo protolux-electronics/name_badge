@@ -57,7 +57,9 @@ defmodule NameBadge.ExRatatui.Frame do
 
   @spec layout(String.t(), sized()) :: {Block.t(), Rect.t(), Rect.t(), Rect.t()}
   def layout(title, %{width: width, height: height})
-      when is_binary(title) and is_integer(width) and is_integer(height) do
+      when is_binary(title) and
+             is_integer(width) and width >= 5 and
+             is_integer(height) and height >= 3 do
     block_rect = %Rect{x: 0, y: 0, width: width, height: height - 2}
 
     content_rect = %Rect{

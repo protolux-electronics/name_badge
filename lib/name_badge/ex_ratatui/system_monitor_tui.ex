@@ -89,6 +89,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
       refresh_ms: refresh_ms,
       top_n: top_n,
       history_size: history_size,
+      in_flight?: false,
       ram_history: List.duplicate(0, history_size),
       load_history: List.duplicate({0.0, 0.0, 0.0}, history_size),
       sched_history: List.duplicate(0, history_size)
@@ -147,6 +148,15 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
     {:noreply, %{state | selected: max(state.selected - 1, 0)}}
   end
 
+  def update({:info, :refresh}, %{in_flight?: true} = state) do
+    # Previous collection still running. Drop this tick instead of
+    # queueing a second async — on the badge under load a heavy
+    # collect_metrics (Process.list + per-process info + /proc reads)
+    # can occasionally outrun the refresh interval, and queueing would
+    # turn a momentary spike into a backlog.
+    {:noreply, state, render?: false}
+  end
+
   def update({:info, :refresh}, state) do
     %{prev_sched_sample: prev, top_n: top_n} = state
 
@@ -156,17 +166,25 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
         fn metrics -> {:metrics_collected, metrics} end
       )
 
-    {:noreply, state, commands: [cmd], render?: false}
+    {:noreply, %{state | in_flight?: true}, commands: [cmd], render?: false}
   end
 
   def update({:info, {:metrics_collected, metrics}}, state) do
     load = metrics.cpu_load
     size = state.history_size
 
+    # Clamp the highlighted row: a high-memory process can disappear
+    # between collections, shrinking `top_procs` below the user's
+    # current `selected` index. Without this clamp the Table widget
+    # would render a highlight on a row that no longer exists.
+    selected = min(state.selected, max(length(metrics.top_procs) - 1, 0))
+
     new_state = %{
       state
       | metrics: metrics,
         prev_sched_sample: metrics.sched_sample,
+        selected: selected,
+        in_flight?: false,
         ram_history: push_history(state.ram_history, ram_percent(metrics), size),
         load_history:
           push_history(state.load_history, {load.load1, load.load5, load.load15}, size),

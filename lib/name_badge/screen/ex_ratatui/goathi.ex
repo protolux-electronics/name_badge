@@ -8,9 +8,11 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   two ears, and two eyes drawn as filled squares — and a "HI!"
   pixel-art word in the top-left of the canvas. Every other tick the
   greeting flashes on and the right eye blinks (drops to a single
-  dash row), so the goat winks while it speaks. All shapes flow
-  through `ascii_to_points/3` into a single `Canvas`, layered in
-  order so the eye sits on top of the face outline.
+  dash row), so the goat winks while it speaks. Each art heredoc is
+  parsed once at compile time by `NameBadge.Screen.ExRatatui.Goathi.Art`
+  into a `%Canvas.Points{}` and baked into a module attribute — render
+  is then pure assembly of the pre-built shapes layered in order so
+  the eye sits on top of the face outline.
 
   Built on the reducer runtime — one `update/2` clause per
   `{:event, …}` / `{:info, …}` shape — so it doubles as a tour of
@@ -45,8 +47,8 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   alias ExRatatui.Event.Key
   alias ExRatatui.Subscription
   alias ExRatatui.Widgets.Canvas
-  alias ExRatatui.Widgets.Canvas.Points
   alias NameBadge.ExRatatui.Frame
+  alias NameBadge.Screen.ExRatatui.Goathi.Art
 
   @tick_interval_ms 1_000
 
@@ -132,6 +134,18 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   @hi_origin_x 2.0
   @hi_origin_y_top 32.0
 
+  # The art is static and the origins are compile-time numbers, so the
+  # resulting `%Points{}` is also static. Bake them once at compile
+  # time instead of re-parsing the heredocs on every render.
+  @face_points Art.ascii_to_points(@face_art, @face_origin_x, @face_origin_y)
+  @hi_points Art.ascii_to_points(@hi_art, @hi_origin_x, @hi_origin_y_top)
+  @right_eye_open_points Art.ascii_to_points(@right_eye_open, @right_eye_x, @right_eye_y_open)
+  @right_eye_closed_points Art.ascii_to_points(
+                             @right_eye_closed,
+                             @right_eye_x,
+                             @right_eye_y_closed
+                           )
+
   @impl ExRatatui.App
   def init(_opts), do: {:ok, %{tick: 0, paused?: false}}
 
@@ -180,21 +194,12 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   end
 
   defp shapes(state) do
-    face = ascii_to_points(@face_art, @face_origin_x, @face_origin_y)
-
     if hi_visible?(state.tick) do
       # Speaking + winking: HI! shows, right eye drops to a dash.
-      [
-        ascii_to_points(@hi_art, @hi_origin_x, @hi_origin_y_top),
-        ascii_to_points(@right_eye_closed, @right_eye_x, @right_eye_y_closed),
-        face
-      ]
+      [@hi_points, @right_eye_closed_points, @face_points]
     else
       # Resting: no HI!, right eye fully open.
-      [
-        ascii_to_points(@right_eye_open, @right_eye_x, @right_eye_y_open),
-        face
-      ]
+      [@right_eye_open_points, @face_points]
     end
   end
 
@@ -211,36 +216,6 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   @spec hi_visible?(non_neg_integer()) :: boolean()
   def hi_visible?(tick) when is_integer(tick) and tick >= 0,
     do: rem(tick, 2) == 0
-
-  @doc """
-  Walks an ASCII-art string and emits a single
-  `%ExRatatui.Widgets.Canvas.Points{}` carrying one coordinate per
-  non-space character. Row 0 of the art lines up with `y_origin`;
-  each subsequent row sits one canvas-unit below. Designed to be
-  fed straight into a `:block`-marker `Canvas` whose bounds are
-  sized 1:1 with cells.
-
-  Public so tests and refinement scripts can call it without
-  reaching into the module's private API.
-  """
-  @spec ascii_to_points(String.t(), number(), number()) :: Points.t()
-  def ascii_to_points(art, x_origin, y_origin) when is_binary(art) do
-    coords =
-      art
-      |> String.split("\n")
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {row_str, row} ->
-        row_str
-        |> String.graphemes()
-        |> Enum.with_index()
-        |> Enum.flat_map(fn
-          {" ", _col} -> []
-          {_char, col} -> [{x_origin + col * 1.0, y_origin - row * 1.0}]
-        end)
-      end)
-
-    %Points{coords: coords, color: :white}
-  end
 
   defp hint_paragraph(state) do
     pause_label = if state.paused?, do: " resume   ", else: " pause    "
