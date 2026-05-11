@@ -41,6 +41,8 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
 
   use ExRatatui.App, runtime: :reducer
 
+  require Logger
+
   alias ExRatatui.{Command, Event, Layout, Layout.Rect, Style, Subscription}
   alias ExRatatui.Text.{Line, Span}
 
@@ -162,11 +164,21 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
 
     cmd =
       Command.async(
-        fn -> collect_metrics(prev, top_n) end,
-        fn metrics -> {:metrics_collected, metrics} end
+        fn -> safe_collect_metrics(prev, top_n) end,
+        fn
+          :error -> :collect_failed
+          metrics -> {:metrics_collected, metrics}
+        end
       )
 
     {:noreply, %{state | in_flight?: true}, commands: [cmd], render?: false}
+  end
+
+  def update({:info, :collect_failed}, state) do
+    # Strand-prevention: a crashed collect_metrics shouldn't leave
+    # `in_flight?` stuck at true and freeze the dashboard. The error
+    # itself has already been logged by `safe_collect_metrics/2`.
+    {:noreply, %{state | in_flight?: false}, render?: false}
   end
 
   def update({:info, {:metrics_collected, metrics}}, state) do
@@ -796,6 +808,20 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   end
 
   # -- Metrics collection (runs in Command.async) --
+
+  # Belt-and-braces around `collect_metrics/2` for the async path: a
+  # crashed collection shouldn't permanently strand `in_flight?` at
+  # true and freeze the dashboard. Direct callers (tests, IEx) don't
+  # need this — they want exceptions to propagate.
+  defp safe_collect_metrics(prev_sched_sample, top_n) do
+    try do
+      collect_metrics(prev_sched_sample, top_n)
+    rescue
+      e ->
+        Logger.error("collect_metrics crashed: #{Exception.message(e)}")
+        :error
+    end
+  end
 
   @doc false
   def collect_metrics(prev_sched_sample, top_n \\ @default_top_n) do

@@ -91,15 +91,37 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
   describe "update/2 — refresh ticks" do
     setup do
       {:ok, state} = Stats.init([])
-      [state: state]
+      [state: state, sample: fixture_sample()]
     end
 
-    test "adds a new sample to all three histories", %{state: state} do
-      assert {:noreply, after_tick} = Stats.update({:info, :refresh}, state)
+    test ":refresh kicks off an async sample and flips in_flight?", %{state: state} do
+      assert {:noreply, after_tick, opts} = Stats.update({:info, :refresh}, state)
+      assert after_tick.in_flight? == true
+      assert opts[:render?] == false
+      assert is_list(opts[:commands]) and opts[:commands] != []
+    end
 
-      assert length(after_tick.memory_history) == length(state.memory_history) + 1
-      assert length(after_tick.reds_history) == length(state.reds_history) + 1
-      assert length(after_tick.queue_history) == length(state.queue_history) + 1
+    test ":sample_taken folds into all three histories and resets in_flight?",
+         %{state: state, sample: sample} do
+      in_flight = %{state | in_flight?: true}
+
+      assert {:noreply, after_fold} = Stats.update({:info, {:sample_taken, sample}}, in_flight)
+
+      assert after_fold.in_flight? == false
+      assert length(after_fold.memory_history) == length(state.memory_history) + 1
+      assert length(after_fold.reds_history) == length(state.reds_history) + 1
+      assert length(after_fold.queue_history) == length(state.queue_history) + 1
+    end
+
+    test ":sample_failed resets in_flight? without touching histories", %{state: state} do
+      in_flight = %{state | in_flight?: true}
+
+      assert {:noreply, after_fail} = Stats.update({:info, :sample_failed}, in_flight)
+
+      assert after_fail.in_flight? == false
+      assert after_fail.memory_history == state.memory_history
+      assert after_fail.reds_history == state.reds_history
+      assert after_fail.queue_history == state.queue_history
     end
 
     test "is a no-op when paused", %{state: state} do
@@ -107,10 +129,15 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       assert {:noreply, ^paused} = Stats.update({:info, :refresh}, paused)
     end
 
-    test "history is capped at 50 samples", %{state: state} do
+    test "drops :refresh ticks while a sample is still in flight", %{state: state} do
+      in_flight = %{state | in_flight?: true}
+      assert {:noreply, ^in_flight} = Stats.update({:info, :refresh}, in_flight)
+    end
+
+    test "history is capped at 50 samples", %{state: state, sample: sample} do
       saturated =
         Enum.reduce(1..60, state, fn _, acc ->
-          {:noreply, next} = Stats.update({:info, :refresh}, acc)
+          {:noreply, next} = Stats.update({:info, {:sample_taken, sample}}, acc)
           next
         end)
 
@@ -121,6 +148,22 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
 
     test "ignores unrelated info messages", %{state: state} do
       assert {:noreply, ^state} = Stats.update({:info, :nope}, state)
+    end
+
+    defp fixture_sample do
+      %{
+        uptime_ms: 1_000,
+        memory_kib: 100,
+        reds_delta: 50,
+        total_reductions: 50,
+        procs: 5,
+        proc_limit: 262_144,
+        atom_count: 100,
+        atom_limit: 1_048_576,
+        queue_len: 0,
+        mem_breakdown: %{processes: 1, binary: 1, ets: 1, code: 1, atom: 1},
+        top: []
+      }
     end
   end
 

@@ -64,6 +64,9 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
   use ExRatatui.App, runtime: :reducer
 
+  require Logger
+
+  alias ExRatatui.Command
   alias ExRatatui.Event.Key
   alias ExRatatui.Layout.Rect
   alias ExRatatui.Subscription
@@ -107,6 +110,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   @typedoc false
   @type state :: %{
           paused?: boolean(),
+          in_flight?: boolean(),
           metric: metric(),
           last_reductions: non_neg_integer() | nil,
           memory_history: [non_neg_integer()],
@@ -120,6 +124,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
     {:ok,
      %{
        paused?: false,
+       in_flight?: false,
        metric: :reductions,
        last_reductions: nil,
        memory_history: [],
@@ -166,7 +171,35 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   end
 
   def update({:info, :refresh}, %{paused?: true} = state), do: {:noreply, state}
-  def update({:info, :refresh}, state), do: {:noreply, refresh(state)}
+  def update({:info, :refresh}, %{in_flight?: true} = state), do: {:noreply, state}
+
+  def update({:info, :refresh}, state) do
+    # Periodic ticks go through Command.async so a slow Process.list /
+    # Process.info scan never blocks the reducer. Event-triggered
+    # refreshes (down/home) stay synchronous because they're rare and
+    # the user expects an immediate response.
+    metric = state.metric
+    last_reductions = state.last_reductions
+
+    cmd =
+      Command.async(
+        fn -> safe_sample(metric, last_reductions) end,
+        fn
+          :error -> :sample_failed
+          sample -> {:sample_taken, sample}
+        end
+      )
+
+    {:noreply, %{state | in_flight?: true}, commands: [cmd], render?: false}
+  end
+
+  def update({:info, {:sample_taken, sample}}, state) do
+    {:noreply, fold_sample(state, sample) |> Map.put(:in_flight?, false)}
+  end
+
+  def update({:info, :sample_failed}, state) do
+    {:noreply, %{state | in_flight?: false}}
+  end
 
   def update(_msg, state), do: {:noreply, state}
 
@@ -175,44 +208,68 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
     [Subscription.interval(:stats_refresh, @refresh_interval_ms, :refresh)]
   end
 
-  # Pure refresh: takes a state, samples the BEAM, returns the new state.
+  # Synchronous sample + fold. Used by init/1 and event handlers where
+  # the caller wants the state updated immediately. Periodic ticks go
+  # through `Command.async` (see the `:refresh` update clause).
   @doc false
   def refresh(state) do
+    sample = take_sample(state.metric, state.last_reductions)
+    fold_sample(state, sample)
+  end
+
+  # Snapshots the BEAM into a `sample` plus a `:total_reductions` field
+  # the fold needs to compute the next `reds_delta`. Pure data — no
+  # state mutation — so it can run in `Command.async` without sharing
+  # anything with the reducer process.
+  defp take_sample(metric, prev_reductions) do
     {uptime_ms, _} = :erlang.statistics(:wall_clock)
     mem = Map.new(:erlang.memory())
     memory_kib = div(mem.total, 1024)
     {total_reds, _} = :erlang.statistics(:reductions)
 
     reds_delta =
-      case state.last_reductions do
+      case prev_reductions do
         nil -> 0
         prev -> max(total_reds - prev, 0)
       end
 
-    procs = length(Process.list())
-    queue_len = :erlang.statistics(:total_run_queue_lengths)
-    top = top_processes(state.metric)
-
-    sample = %{
+    %{
       uptime_ms: uptime_ms,
       memory_kib: memory_kib,
       reds_delta: reds_delta,
-      procs: procs,
+      total_reductions: total_reds,
+      procs: :erlang.system_info(:process_count),
       proc_limit: :erlang.system_info(:process_limit),
       atom_count: :erlang.system_info(:atom_count),
       atom_limit: :erlang.system_info(:atom_limit),
-      queue_len: queue_len,
+      queue_len: :erlang.statistics(:total_run_queue_lengths),
       mem_breakdown: Map.take(mem, [:processes, :binary, :ets, :code, :atom]),
-      top: top
+      top: top_processes(metric)
     }
+  end
 
+  # Belt-and-braces around `take_sample/2` for the async path: a
+  # crashed sample shouldn't permanently strand `in_flight?` at `true`
+  # and freeze the dashboard. The synchronous callers don't need this
+  # — an exception there propagates as it would have before.
+  defp safe_sample(metric, prev_reductions) do
+    try do
+      take_sample(metric, prev_reductions)
+    rescue
+      e ->
+        Logger.error("Stats.take_sample crashed: #{Exception.message(e)}")
+        :error
+    end
+  end
+
+  defp fold_sample(state, sample) do
     %{
       state
-      | last_reductions: total_reds,
-        memory_history: push_history(state.memory_history, memory_kib),
-        reds_history: push_history(state.reds_history, reds_delta),
-        queue_history: push_history(state.queue_history, queue_len),
-        sample: sample
+      | last_reductions: sample.total_reductions,
+        memory_history: push_history(state.memory_history, sample.memory_kib),
+        reds_history: push_history(state.reds_history, sample.reds_delta),
+        queue_history: push_history(state.queue_history, sample.queue_len),
+        sample: Map.delete(sample, :total_reductions)
     }
   end
 
@@ -254,6 +311,9 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
       name when is_atom(name) ->
         Atom.to_string(name)
+
+      _ ->
+        "—"
     end
   end
 
