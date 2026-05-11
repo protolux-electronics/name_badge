@@ -68,7 +68,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   alias ExRatatui.Layout.Rect
   alias ExRatatui.Subscription
   alias ExRatatui.Widgets.{Block, Paragraph, Sparkline}
-  alias NameBadge.ExRatatui.DemoFrame
+  alias NameBadge.ExRatatui.Frame
 
   @history_len 50
   @top_n 12
@@ -132,7 +132,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
 
   @impl ExRatatui.App
   def render(state, frame) do
-    {block, block_rect, content_rect, hint_rect} = DemoFrame.layout("stats", frame)
+    {block, block_rect, content_rect, hint_rect} = Frame.layout("stats", frame)
     sample = state.sample || empty_sample()
 
     # Five inset section blocks tile content_rect top-to-bottom. Each
@@ -259,7 +259,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   # ── Section builders ───────────────────────────────────────────────
   #
   # Each section paints its own titled `Block` over a rect carved out
-  # of the outer DemoFrame's content area, then layers child widgets
+  # of the outer Frame's content area, then layers child widgets
   # on top of the block's hollow interior. Order matters: section
   # blocks come first, content widgets after, so the borders never
   # paint over the content.
@@ -457,7 +457,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
   defp hint_paragraph(state) do
     pause_label = if state.paused?, do: " resume   ", else: " pause    "
 
-    DemoFrame.hint([
+    Frame.hint([
       {" A ", :chip},
       {pause_label, :label},
       {" B ", :chip},

@@ -1,4 +1,4 @@
-defmodule NameBadge.ExRatatui.DemoFrame do
+defmodule NameBadge.ExRatatui.Frame do
   @moduledoc """
   Shared chrome for the badge's `ExRatatui.App` demos.
 
@@ -11,12 +11,12 @@ defmodule NameBadge.ExRatatui.DemoFrame do
 
   ## Usage
 
-      {block, block_rect, content_rect, hint_rect} = DemoFrame.layout("counter", frame)
+      {block, block_rect, content_rect, hint_rect} = Frame.layout("counter", frame)
 
       [
         {block, block_rect},
         {my_content_widget, content_rect},
-        {DemoFrame.hint([
+        {Frame.hint([
            {" A ", :chip}, {" +1   ", :label},
            {" A long ", :chip}, {" reset", :label}
          ]), hint_rect}

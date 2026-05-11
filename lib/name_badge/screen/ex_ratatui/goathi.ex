@@ -15,7 +15,7 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   Built on the reducer runtime — one `update/2` clause per
   `{:event, …}` / `{:info, …}` shape — so it doubles as a tour of
   how to write a self-ticking ExRatatui app. Chrome (outer block +
-  bottom hint strip) comes from `NameBadge.ExRatatui.DemoFrame` so
+  bottom hint strip) comes from `NameBadge.ExRatatui.Frame` so
   every demo uses the screen the same way.
 
   The 1 s tick is tuned for the badge's UC8276 partial-refresh
@@ -46,7 +46,7 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   alias ExRatatui.Subscription
   alias ExRatatui.Widgets.Canvas
   alias ExRatatui.Widgets.Canvas.Points
-  alias NameBadge.ExRatatui.DemoFrame
+  alias NameBadge.ExRatatui.Frame
 
   @tick_interval_ms 1_000
 
@@ -137,11 +137,11 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
 
   @impl ExRatatui.App
   def render(state, frame) do
-    {_block, block_rect, content_rect, hint_rect} = DemoFrame.layout("goathi", frame)
+    {_block, block_rect, content_rect, hint_rect} = Frame.layout("goathi", frame)
 
     # Canvas takes its own `:block` (the borders + title sit on the
     # Canvas struct so the marker pixels paint inside them), so we
-    # discard the standalone DemoFrame block and paint the canvas
+    # discard the standalone Frame block and paint the canvas
     # across the same `block_rect`. Bounds are sized 1:1 with the
     # inner content area — one canvas unit equals one cell, so pixel
     # art stays square.
@@ -150,7 +150,7 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
       y_bounds: {0.0, content_rect.height * 1.0},
       marker: :block,
       shapes: shapes(state),
-      block: DemoFrame.title_block("goathi")
+      block: Frame.title_block("goathi")
     }
 
     [
@@ -245,7 +245,7 @@ defmodule NameBadge.Screen.ExRatatui.Goathi do
   defp hint_paragraph(state) do
     pause_label = if state.paused?, do: " resume   ", else: " pause    "
 
-    DemoFrame.hint([
+    Frame.hint([
       {" A ", :chip},
       {pause_label, :label},
       {" A long ", :chip},

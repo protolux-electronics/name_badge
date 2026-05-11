@@ -1,4 +1,4 @@
-defmodule NameBadge.SystemMonitorTui do
+defmodule NameBadge.ExRatatui.SystemMonitorTui do
   @moduledoc """
   Three-tab live dashboard of host + BEAM metrics, registered as a
   `nerves_ssh` subsystem so any client with an authorized key can drop
@@ -7,7 +7,7 @@ defmodule NameBadge.SystemMonitorTui do
 
   Run from a laptop:
 
-      ssh -t nerves@wisteria.local -s Elixir.NameBadge.SystemMonitorTui
+      ssh -t nerves@wisteria.local -s Elixir.NameBadge.ExRatatui.SystemMonitorTui
 
   The `-t` is required — OpenSSH does not allocate a PTY for `-s`
   subsystem mode by default, and without it keystrokes get
@@ -16,7 +16,7 @@ defmodule NameBadge.SystemMonitorTui do
   Plain `ssh nerves@wisteria.local` still drops you into the regular
   IEx prompt. From there you can also start the TUI manually:
 
-      iex> NameBadge.SystemMonitorTui.run()
+      iex> NameBadge.ExRatatui.SystemMonitorTui.run()
 
   Built on the ExRatatui reducer runtime — `init/1` + `update/2` +
   `subscriptions/1`. Heavy `/proc` reads run off the server process

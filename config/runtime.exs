@@ -4,7 +4,7 @@ import Config
 # you can drop into a full-color dashboard from your laptop without
 # disturbing the badge's e-ink screen:
 #
-#     ssh -t nerves@wisteria.local -s Elixir.NameBadge.SystemMonitorTui
+#     ssh -t nerves@wisteria.local -s Elixir.NameBadge.ExRatatui.SystemMonitorTui
 #
 # Plain `ssh nerves@wisteria.local` still gives you the regular IEx
 # prompt — the subsystem only kicks in when you pass `-s`.
@@ -29,6 +29,6 @@ if Application.spec(:nerves_ssh) do
   config :nerves_ssh,
     subsystems: [
       :ssh_sftpd.subsystem_spec(cwd: ~c"/"),
-      ExRatatui.SSH.subsystem(NameBadge.SystemMonitorTui)
+      ExRatatui.SSH.subsystem(NameBadge.ExRatatui.SystemMonitorTui)
     ]
 end

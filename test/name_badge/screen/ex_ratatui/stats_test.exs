@@ -152,7 +152,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
          %{widgets: widgets} do
       titles = block_titles(widgets)
 
-      # Outer DemoFrame block plus one block per section.
+      # Outer Frame block plus one block per section.
       assert " ex_ratatui - stats " in titles
       assert " summary " in titles
       assert " memory by category " in titles

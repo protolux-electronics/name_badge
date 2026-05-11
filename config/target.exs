@@ -25,9 +25,9 @@ config :tzdata, :data_dir, "/data/tzdata"
 # Configure the device for SSH IEx prompt access and firmware updates.
 #
 #   ssh nerves@wisteria.local                        # IEx shell
-#   cat name_badge.fw | ssh -s nerves@... fwup        # OTA via fwup subsystem
+#   cat name_badge.fw | ssh -s nerves@... fwup        # via fwup subsystem
 #   ssh -t nerves@wisteria.local \                   # live system monitor TUI
-#     -s Elixir.NameBadge.SystemMonitorTui
+#     -s Elixir.NameBadge.ExRatatui.SystemMonitorTui
 #
 # The TUI subsystem is registered in `config/runtime.exs` because
 # `ExRatatui.SSH.subsystem/1` is a function call and target deps

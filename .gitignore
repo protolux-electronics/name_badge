@@ -24,6 +24,3 @@ erl_crash.dump
 
 # ignore macOS files
 .DS_Store
-
-# dev notes
-/docs/dev/

@@ -16,9 +16,9 @@ defmodule NameBadge.Screen.TopLevel do
 
   defp screens do
     if NameBadge.CalendarService.enabled?() do
-      # Insert Calendar just before Weather
+      # Insert Calendar after Weather
       weather_index = Enum.find_index(@base_screens, &match?({Screen.Weather, _}, &1))
-      List.insert_at(@base_screens, weather_index, {Screen.Calendar, "Calendar"})
+      List.insert_at(@base_screens, weather_index + 1, {Screen.Calendar, "Calendar"})
     else
       @base_screens
     end

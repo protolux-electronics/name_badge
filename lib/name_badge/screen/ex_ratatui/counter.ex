@@ -2,7 +2,7 @@ defmodule NameBadge.Screen.ExRatatui.Counter do
   @moduledoc """
   A two-button TUI counter — the simplest end-to-end demo of the
   `NameBadge.Screen.ExRatatui` adapter, sharing chrome with every
-  other ExRatatui demo through `NameBadge.ExRatatui.DemoFrame`.
+  other ExRatatui demo through `NameBadge.ExRatatui.Frame`.
 
   ## Layout
 
@@ -30,20 +30,20 @@ defmodule NameBadge.Screen.ExRatatui.Counter do
 
   alias ExRatatui.Event.Key
   alias ExRatatui.Widgets.Paragraph
-  alias NameBadge.ExRatatui.DemoFrame
+  alias NameBadge.ExRatatui.Frame
 
   @impl ExRatatui.App
   def mount(_opts), do: {:ok, %{count: 0}}
 
   @impl ExRatatui.App
   def render(state, frame) do
-    {block, block_rect, content_rect, hint_rect} = DemoFrame.layout("counter", frame)
-    count_rect = DemoFrame.center_row(content_rect, 1)
+    {block, block_rect, content_rect, hint_rect} = Frame.layout("counter", frame)
+    count_rect = Frame.center_row(content_rect, 1)
 
     [
       {block, block_rect},
       {%Paragraph{text: "count: #{state.count}", alignment: :center}, count_rect},
-      {DemoFrame.hint([
+      {Frame.hint([
          {" A ", :chip},
          {" +1    ", :label},
          {" A long ", :chip},
