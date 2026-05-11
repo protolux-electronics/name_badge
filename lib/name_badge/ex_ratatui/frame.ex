@@ -3,7 +3,7 @@ defmodule NameBadge.ExRatatui.Frame do
   Shared chrome for the badge's `ExRatatui.App` demos.
 
   Every demo lays out the same way: an outer `Block` titled
-  ` ex_ratatui · <demo> ` covers all but the bottom row, and a
+  ` ex_ratatui - <demo> ` covers all but the bottom row, and a
   single-row hint strip at the very bottom carries reverse-video
   key chips next to plain action labels. Centralising those rects
   here keeps the screens visually consistent and means individual

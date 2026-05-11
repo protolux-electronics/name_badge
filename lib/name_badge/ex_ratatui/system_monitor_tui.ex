@@ -59,17 +59,26 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   alias ExRatatui.Widgets.Chart.{Axis, Dataset}
   alias ExRatatui.Widgets.List, as: WList
 
-  @refresh_ms 1_000
-  @top_n 20
-  @history_size 60
+  @default_refresh_ms 1_000
+  @default_top_n 20
+  @default_history_size 60
 
   # -- Reducer callbacks --
 
   @impl true
-  def init(_opts) do
+  def init(opts) do
+    refresh_ms = Keyword.get(opts, :refresh_ms, @default_refresh_ms)
+    top_n = Keyword.get(opts, :top_n, @default_top_n)
+    history_size = Keyword.get(opts, :history_size, @default_history_size)
+
+    # Enables per-scheduler busy-time accounting (read in
+    # `collect_scheduler_usage/1`). Node-global side effect — intentional;
+    # leaving it on after this TUI exits is harmless and matches what
+    # `:observer` / `observer_cli` do.
     :erlang.system_flag(:scheduler_wall_time, true)
+
     host = collect_host_info()
-    metrics = collect_metrics(nil)
+    metrics = collect_metrics(nil, top_n)
 
     state = %{
       tab: 0,
@@ -77,9 +86,12 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
       host: host,
       metrics: metrics,
       prev_sched_sample: metrics.sched_sample,
-      ram_history: List.duplicate(0, @history_size),
-      load_history: List.duplicate({0.0, 0.0, 0.0}, @history_size),
-      sched_history: List.duplicate(0, @history_size)
+      refresh_ms: refresh_ms,
+      top_n: top_n,
+      history_size: history_size,
+      ram_history: List.duplicate(0, history_size),
+      load_history: List.duplicate({0.0, 0.0, 0.0}, history_size),
+      sched_history: List.duplicate(0, history_size)
     }
 
     {:ok, state}
@@ -136,9 +148,11 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   end
 
   def update({:info, :refresh}, state) do
+    %{prev_sched_sample: prev, top_n: top_n} = state
+
     cmd =
       Command.async(
-        fn -> collect_metrics(state.prev_sched_sample) end,
+        fn -> collect_metrics(prev, top_n) end,
         fn metrics -> {:metrics_collected, metrics} end
       )
 
@@ -147,14 +161,16 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
 
   def update({:info, {:metrics_collected, metrics}}, state) do
     load = metrics.cpu_load
+    size = state.history_size
 
     new_state = %{
       state
       | metrics: metrics,
         prev_sched_sample: metrics.sched_sample,
-        ram_history: push_history(state.ram_history, ram_percent(metrics)),
-        load_history: push_history(state.load_history, {load.load1, load.load5, load.load15}),
-        sched_history: push_history(state.sched_history, sched_avg_percent(metrics))
+        ram_history: push_history(state.ram_history, ram_percent(metrics), size),
+        load_history:
+          push_history(state.load_history, {load.load1, load.load5, load.load15}, size),
+        sched_history: push_history(state.sched_history, sched_avg_percent(metrics), size)
     }
 
     {:noreply, new_state}
@@ -163,8 +179,8 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   def update(_msg, state), do: {:noreply, state}
 
   @impl true
-  def subscriptions(_state) do
-    [Subscription.interval(:refresh, @refresh_ms, :refresh)]
+  def subscriptions(state) do
+    [Subscription.interval(:refresh, state.refresh_ms, :refresh)]
   end
 
   # -- Header / Tabs / Footer --
@@ -571,7 +587,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
           Line.new([
             Span.new(" "),
             Span.new("Top", style: %Style{fg: :blue, modifiers: [:bold]}),
-            Span.new(" #{@top_n} "),
+            Span.new(" #{state.top_n} "),
             Span.new("by memory", style: %Style{fg: :dark_gray}),
             Span.new(" ")
           ]),
@@ -634,9 +650,9 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
         }
       ],
       x_axis: %Axis{
-        bounds: {0.0, (@history_size - 1) * 1.0},
+        bounds: {0.0, (state.history_size - 1) * 1.0},
         style: %Style{fg: :dark_gray},
-        labels: [" -#{@history_size}s ", " now "]
+        labels: [" -#{state.history_size}s ", " now "]
       },
       y_axis: %Axis{
         title: Span.new("%", style: %Style{fg: :dark_gray}),
@@ -654,7 +670,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
             Span.new("#{ram_percent(state.metrics)}%",
               style: %Style{fg: :cyan, modifiers: [:bold]}
             ),
-            Span.new(" — last #{@history_size}s ", style: %Style{fg: :dark_gray})
+            Span.new(" — last #{state.history_size}s ", style: %Style{fg: :dark_gray})
           ]),
         borders: [:all],
         border_type: :rounded,
@@ -664,14 +680,16 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   end
 
   defp load_chart(state) do
+    history = Enum.reverse(state.load_history)
+
     load1 =
-      state.load_history |> Enum.with_index() |> Enum.map(fn {{v, _, _}, i} -> {i * 1.0, v} end)
+      history |> Enum.with_index() |> Enum.map(fn {{v, _, _}, i} -> {i * 1.0, v} end)
 
     load5 =
-      state.load_history |> Enum.with_index() |> Enum.map(fn {{_, v, _}, i} -> {i * 1.0, v} end)
+      history |> Enum.with_index() |> Enum.map(fn {{_, v, _}, i} -> {i * 1.0, v} end)
 
     load15 =
-      state.load_history |> Enum.with_index() |> Enum.map(fn {{_, _, v}, i} -> {i * 1.0, v} end)
+      history |> Enum.with_index() |> Enum.map(fn {{_, _, v}, i} -> {i * 1.0, v} end)
 
     cores = max(state.host.cpu_cores || 1, 1)
     y_max = max(cores * 1.5, highest_load(state.load_history) * 1.1)
@@ -702,9 +720,9 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
         }
       ],
       x_axis: %Axis{
-        bounds: {0.0, (@history_size - 1) * 1.0},
+        bounds: {0.0, (state.history_size - 1) * 1.0},
         style: %Style{fg: :dark_gray},
-        labels: [" -#{@history_size}s ", " now "]
+        labels: [" -#{state.history_size}s ", " now "]
       },
       y_axis: %Axis{
         bounds: {0.0, y_max},
@@ -737,7 +755,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
 
   defp sched_sparkline(state) do
     %Sparkline{
-      data: state.sched_history,
+      data: Enum.reverse(state.sched_history),
       max: 100,
       bar_set: :nine_levels,
       style: %Style{fg: :green},
@@ -750,7 +768,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
             Span.new("#{sched_avg_percent(state.metrics)}%",
               style: %Style{fg: :green, modifiers: [:bold]}
             ),
-            Span.new(" — last #{@history_size}s ", style: %Style{fg: :dark_gray})
+            Span.new(" — last #{state.history_size}s ", style: %Style{fg: :dark_gray})
           ]),
         borders: [:all],
         border_type: :rounded,
@@ -762,7 +780,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
   # -- Metrics collection (runs in Command.async) --
 
   @doc false
-  def collect_metrics(prev_sched_sample) do
+  def collect_metrics(prev_sched_sample, top_n \\ @default_top_n) do
     {scheduler_usage, new_sample} = collect_scheduler_usage(prev_sched_sample)
     beam = :erlang.memory()
 
@@ -771,7 +789,7 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
       sys: collect_system_info(scheduler_usage),
       host_uptime: read_host_uptime(),
       cpu_load: read_cpu_load(),
-      top_procs: collect_top_processes(@top_n),
+      top_procs: collect_top_processes(top_n),
       sched_sample: new_sample
     }
   end
@@ -1024,13 +1042,17 @@ defmodule NameBadge.ExRatatui.SystemMonitorTui do
 
   # -- History helpers --
 
-  defp push_history(list, value) do
-    [_ | rest] = list
-    rest ++ [value]
+  # Internally newest-first: prepend O(1), truncate via pattern match.
+  # Consumers that need chronological order (`indexed_points/1`) reverse
+  # at read time — paid once per render, vs once per tick across three
+  # histories.
+  defp push_history(history, value, size) do
+    [value | Enum.take(history, size - 1)]
   end
 
   defp indexed_points(list) do
     list
+    |> Enum.reverse()
     |> Enum.with_index()
     |> Enum.map(fn {v, i} -> {i * 1.0, v * 1.0} end)
   end

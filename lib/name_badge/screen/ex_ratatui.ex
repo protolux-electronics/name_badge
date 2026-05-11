@@ -174,9 +174,16 @@ defmodule NameBadge.Screen.ExRatatui do
   defp blank_png(), do: Raster.new() |> Raster.to_png()
 
   # Awaits the first cell_writer message and folds it into the
-  # provided raster. Falls back to a blank PNG if no diff is in the
-  # mailbox after a short window — better to start with blank and
-  # update on the next handle_info than to deadlock the screen.
+  # provided raster. Falls back to a blank PNG if no diff is
+  # delivered within @initial_frame_timeout — better to start with
+  # blank and update on the next handle_info than to deadlock the
+  # screen.
+  #
+  # 100ms is comfortably above the observed first-render time
+  # (synchronous in the Server's init/1 plus a single send) on the
+  # badge — even under cold load the first diff has always landed
+  # well under that. Bump if a future app does heavy work in its
+  # mount/1.
   @initial_frame_timeout 100
   defp drain_initial_frame(raster) do
     receive do
@@ -211,27 +218,26 @@ defmodule NameBadge.Screen.ExRatatui do
   end
 
   defp ensure_ex_ratatui_app!(app_mod) do
-    Code.ensure_loaded(app_mod)
+    case Code.ensure_loaded(app_mod) do
+      {:module, ^app_mod} ->
+        if function_exported?(app_mod, :__runtime__, 0) do
+          :ok
+        else
+          raise ArgumentError, """
+          #{inspect(app_mod)} does not export __runtime__/0 — did you
+          forget `use ExRatatui.App`?
 
-    cond do
-      not Code.ensure_loaded?(app_mod) ->
+          Declaring `@behaviour ExRatatui.App` alone is not enough; the
+          runtime relies on __runtime__/0 to choose between the callback
+          and reducer styles. Switch to `use ExRatatui.App` and the
+          function will be injected for you.
+          """
+        end
+
+      {:error, _reason} ->
         raise ArgumentError,
               "App module #{inspect(app_mod)} could not be loaded. " <>
                 "Check the spelling and make sure it compiles."
-
-      not function_exported?(app_mod, :__runtime__, 0) ->
-        raise ArgumentError, """
-        #{inspect(app_mod)} does not export __runtime__/0 — did you
-        forget `use ExRatatui.App`?
-
-        Declaring `@behaviour ExRatatui.App` alone is not enough; the
-        runtime relies on __runtime__/0 to choose between the callback
-        and reducer styles. Switch to `use ExRatatui.App` and the
-        function will be injected for you.
-        """
-
-      true ->
-        :ok
     end
   end
 

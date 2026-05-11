@@ -94,7 +94,7 @@ defmodule NameBadge.Screen.ExRatatui.StatsTest do
       [state: state]
     end
 
-    test "appends a new sample to all three histories", %{state: state} do
+    test "adds a new sample to all three histories", %{state: state} do
       assert {:noreply, after_tick} = Stats.update({:info, :refresh}, state)
 
       assert length(after_tick.memory_history) == length(state.memory_history) + 1

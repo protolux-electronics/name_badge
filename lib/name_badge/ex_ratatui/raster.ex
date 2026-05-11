@@ -105,7 +105,12 @@ defmodule NameBadge.ExRatatui.Raster do
   """
   @spec apply_diff(t(), Diff.t()) :: t()
   def apply_diff(%__MODULE__{cells: existing} = r, %Diff{ops: ops}) do
-    %{r | cells: Map.merge(existing, index(ops))}
+    cells =
+      Enum.reduce(ops, existing, fn %Cell{col: c, row: row} = cell, acc ->
+        Map.put(acc, {c, row}, cell)
+      end)
+
+    %{r | cells: cells}
   end
 
   @doc """
@@ -144,6 +149,25 @@ defmodule NameBadge.ExRatatui.Raster do
   @paper_cell_row :binary.copy(<<@paper>>, @cell_w)
   @paper_right_padding :binary.copy(<<@paper>>, @display_width - @grid_cols * @cell_w)
 
+  # Precomputed 6-byte pixel rows for every {glyph_byte, inverted?}
+  # pair. The glyph_byte's top six bits index six pixels; the inverted
+  # flag swaps which colour fills set vs cleared bits. With 256 × 2 =
+  # 512 entries this is ~3 KiB resident, and every refresh hits the
+  # table instead of doing six shifts + a list-to-binary per cell row.
+  @row_table (for byte <- 0..255, inverted? <- [false, true], into: %{} do
+                {ink, paper} = if inverted?, do: {@paper, @ink}, else: {@ink, @paper}
+
+                row =
+                  for i <- 0..(@cell_w - 1), into: <<>> do
+                    case byte >>> (7 - i) &&& 1 do
+                      1 -> <<ink>>
+                      0 -> <<paper>>
+                    end
+                  end
+
+                {{byte, inverted?}, row}
+              end)
+
   defp paper_padding(:right), do: @paper_right_padding
 
   defp cell_pixel_row(nil, _sub_y), do: @paper_cell_row
@@ -156,43 +180,21 @@ defmodule NameBadge.ExRatatui.Raster do
       |> Font.glyph()
       |> :binary.at(sub_y)
 
-    {ink, paper} = ink_and_paper(cell)
-
-    Enum.map(0..(@cell_w - 1), fn i ->
-      case byte >>> (7 - i) &&& 1 do
-        1 -> ink
-        0 -> paper
-      end
-    end)
-    |> :binary.list_to_bin()
+    Map.fetch!(@row_table, {byte, inverted?(cell)})
   end
 
-  # Returns the {ink_byte, paper_byte} pair to use for a cell. On the
-  # 1-bit e-ink display, "color" collapses to "are we inverted?" — a
-  # cell paints paper glyphs on an ink background only when the user
-  # explicitly asked for it via the `:reversed` modifier or
+  # On the 1-bit e-ink display, "color" collapses to "are we inverted?"
+  # — a cell paints paper glyphs on an ink background only when the
+  # user explicitly asked for it via the `:reversed` modifier or
   # `bg: :black`. Other bg colors (notably `:white`, which the Canvas
   # widget emits as its default fill) leave the cell rendering
   # ink-on-paper.
-  defp ink_and_paper(%Cell{bg: bg, modifiers: modifiers}) do
-    if inverted?(bg, modifiers) do
-      {@paper, @ink}
-    else
-      {@ink, @paper}
-    end
-  end
-
-  defp inverted?(:black, _modifiers), do: true
-  defp inverted?(_bg, modifiers), do: :reversed in modifiers
+  defp inverted?(%Cell{bg: :black}), do: true
+  defp inverted?(%Cell{modifiers: modifiers}), do: :reversed in modifiers
 
   defp codepoint_of(""), do: ?\s
-
-  defp codepoint_of(symbol) when is_binary(symbol) do
-    case String.to_charlist(symbol) do
-      [cp | _] -> cp
-      [] -> ?\s
-    end
-  end
+  defp codepoint_of(<<cp::utf8, _::binary>>), do: cp
+  defp codepoint_of(_), do: ?\s
 
   defp index(cells) do
     Map.new(cells, fn %Cell{col: c, row: r} = cell -> {{c, r}, cell} end)

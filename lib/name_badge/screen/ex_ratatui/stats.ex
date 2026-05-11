@@ -216,10 +216,11 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
     }
   end
 
+  # Internally newest-first: prepend O(1), truncate via Enum.take.
+  # Sparklines render oldest-on-the-left, so callers reverse at read
+  # time — see `trends_section/2`.
   defp push_history(history, value) do
-    history
-    |> Enum.take(@history_len - 1)
-    |> List.insert_at(-1, value)
+    [value | Enum.take(history, @history_len - 1)]
   end
 
   defp cycle_metric(metric) do
@@ -355,7 +356,7 @@ defmodule NameBadge.Screen.ExRatatui.Stats do
         [
           {%Paragraph{text: label},
            %Rect{x: inner.x, y: inner.y + dy, width: label_w, height: 1}},
-          {%Sparkline{data: data, bar_set: @bar_set},
+          {%Sparkline{data: Enum.reverse(data), bar_set: @bar_set},
            %Rect{x: spark_x, y: inner.y + dy, width: spark_w, height: 1}}
         ]
       end)
