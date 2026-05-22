@@ -60,7 +60,7 @@ config :mdns_lite,
   # because otherwise any of the devices may respond to nerves.local leading to
   # unpredictable behavior.
 
-  hosts: [:hostname, "wisteria"],
+  hosts: [:hostname, "nerves"],
   ttl: 120,
 
   # Advertise the following services over mDNS.

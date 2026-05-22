@@ -20,21 +20,14 @@ defmodule NameBadge.Display do
   @impl GenServer
   def init(_opts) do
     {:ok, eink} =
-      EInk.new(EInk.Driver.UC8276,
+      EInk.new(EInk.Driver.UC8179,
         dc_pin: "EPD_DC",
         reset_pin: "EPD_RESET",
         busy_pin: "EPD_BUSY",
         spi_device: "spidev0.0"
       )
 
-    EInk.clear(eink, :white)
-    EInk.draw(eink, initial_frame())
-
-    # this sleep blocks the init of other processes in the
-    # supervision tree, creating a short "loading screen"
-    Process.sleep(3_000)
-
-    {:ok, %{eink: eink}}
+    {:ok, %{eink: eink}, {:continue, :clear}}
   end
 
   @impl GenServer
@@ -57,17 +50,11 @@ defmodule NameBadge.Display do
     {:reply, :ok, state}
   end
 
-  defp initial_frame() do
-    """
-    #set page(width: 400pt, height: 300pt)
-    #place(center + horizon, image("images/logos.svg", width: 196pt))
-    """
-    |> Typst.render_to_png!([], root_dir: Application.app_dir(:name_badge, "priv/typst"))
-    |> List.first()
-    |> Dither.decode!()
-    |> Dither.grayscale!()
-    |> Dither.to_raw!()
-    |> pack_bits()
+  @impl GenServer
+  def handle_continue(:clear, state) do
+    EInk.clear(state.eink)
+
+    {:noreply, state}
   end
 
   def eval_template(template) do
@@ -82,9 +69,10 @@ defmodule NameBadge.Display do
     |> prepare_png()
   end
 
-  defp prepare_png(ref) when is_reference(ref) do
-    ref
+  defp prepare_png(%Dither{} = img) do
+    img
     |> Dither.grayscale!()
+    |> Dither.rotate!(180)
     |> Dither.to_raw!()
     |> pack_bits()
   end

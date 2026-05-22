@@ -41,9 +41,9 @@ defmodule NameBadge.Application do
 
   defp target_children(_target) do
     [
-      button_spec(:button_1),
-      button_spec(:button_2),
-      NameBadge.Battery,
+      # NameBadge.Battery,
+      {NameBadge.ButtonMonitor, port: "/dev/ttyS2"},
+      NameBadge.BatteryMock,
       NameBadge.Display,
       NameBadge.TimezoneService,
       NameBadge.Weather,
@@ -60,15 +60,27 @@ defmodule NameBadge.Application do
     end
   end
 
-  defp button_spec(button_name, opts \\ []) do
-    spec = {NameBadge.ButtonMonitor, Keyword.put(opts, :button, button_name)}
-    Supervisor.child_spec(spec, id: button_name)
-  end
-
   if Mix.target() == :host do
     defp setup_wifi(), do: :ok
   else
     defp setup_wifi() do
+      MdnsLite.add_mdns_service(%{
+        id: :nerves_device,
+        protocol: "nerves-device",
+        transport: "tcp",
+        port: 0,
+        txt_payload: [
+          "serial=#{Nerves.Runtime.serial_number()}",
+          "product=#{Nerves.Runtime.KV.get_active("nerves_fw_product")}",
+          "description=#{Nerves.Runtime.KV.get_active("nerves_fw_description")}",
+          "version=#{Nerves.Runtime.KV.get_active("nerves_fw_version")}",
+          "platform=#{Nerves.Runtime.KV.get_active("nerves_fw_platform")}",
+          "architecture=#{Nerves.Runtime.KV.get_active("nerves_fw_architecture")}",
+          "author=#{Nerves.Runtime.KV.get_active("nerves_fw_author")}",
+          "uuid=#{Nerves.Runtime.KV.get_active("nerves_fw_uuid")}"
+        ]
+      })
+
       kv = Nerves.Runtime.KV.get_all()
 
       if true?(kv["wifi_force"]) or not wlan0_configured?() do

@@ -46,7 +46,7 @@ defmodule NameBadge.MixProject do
       {:toolshed, "~> 0.4.0"},
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
-      {:dither, "~> 0.1.1"},
+      {:dither, "~> 0.2"},
       {:typst, "~> 0.3"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
@@ -61,7 +61,11 @@ defmodule NameBadge.MixProject do
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.1.3", targets: @all_targets},
-      {:eink, github: "protolux-electronics/eink", targets: @all_targets},
+      {:circuits_uart, "~> 1.0", targets: @all_targets},
+      {:eink,
+       github: "protolux-electronics/eink",
+       ref: "ddcbc39fc865463a0c95befb50e08498d99cb538",
+       targets: @all_targets},
       {:vintage_net_wizard,
        github: "nerves-networking/vintage_net_wizard", targets: @all_targets},
 
@@ -70,7 +74,11 @@ defmodule NameBadge.MixProject do
       # bumps to Nerves systems. Since these include Linux kernel and Erlang
       # version updates, please review their release notes in case
       # changes to your application are needed.
-      {:nerves_system_trellis, "~> 0.3.0", runtime: false, targets: :trellis}
+      {:nerves_system_trellis,
+       github: "protolux-electronics/nerves_system_trellis",
+       ref: "support-nsk",
+       runtime: false,
+       targets: :trellis}
     ]
   end
 
