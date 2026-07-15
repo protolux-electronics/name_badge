@@ -23,11 +23,11 @@ defmodule NameBadge.DisplayMock do
   end
 
   @impl GenServer
-  def handle_call({:render_typst, markup, _opts}, _from, _state) do
+  def handle_call({:render_typst, markup, opts}, _from, _state) do
     png =
       markup
       |> NameBadge.Display.eval_template()
-      |> prepare_png()
+      |> prepare_png(opts)
 
     send_frame(png)
 
@@ -35,13 +35,13 @@ defmodule NameBadge.DisplayMock do
   end
 
   @impl GenServer
-  def handle_call({:render_png, png_ref_or_binary, _opts}, _from, _state) do
+  def handle_call({:render_png, png_ref_or_binary, opts}, _from, _state) do
     png =
       case png_ref_or_binary do
         bin when is_binary(bin) -> bin
         ref when is_reference(ref) -> Dither.encode!(ref)
       end
-      |> prepare_png()
+      |> prepare_png(opts)
 
     send_frame(png)
 
@@ -62,11 +62,22 @@ defmodule NameBadge.DisplayMock do
     |> List.first()
   end
 
-  defp prepare_png(png) do
-    Dither.decode!(png)
-    |> Dither.grayscale!()
-    |> Dither.to_raw!()
-    |> threshold()
+  # Simulate the panel. 1-bit modes hard-threshold to black/white; grayscale
+  # mode (`render_opts: [mode: :grayscale]`) quantizes to the 4 real levels.
+  defp prepare_png(png, opts) do
+    raw =
+      Dither.decode!(png)
+      |> Dither.grayscale!()
+      |> Dither.to_raw!()
+
+    mapped =
+      if Keyword.get(opts, :mode) == :grayscale do
+        quantize4(raw)
+      else
+        threshold(raw)
+      end
+
+    mapped
     |> Dither.from_raw!(400, 300)
     |> Dither.encode!()
   end
@@ -77,4 +88,9 @@ defmodule NameBadge.DisplayMock do
 
   defp threshold(val) when is_integer(val) and val > 100, do: 255
   defp threshold(val) when is_integer(val) and val <= 100, do: 0
+
+  # Snap each byte to the nearest of the panel's 4 levels: 0, 85, 170, 255.
+  defp quantize4(bin) when is_binary(bin) do
+    for <<b <- bin>>, into: <<>>, do: <<round(b / 85) * 85>>
+  end
 end
