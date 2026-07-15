@@ -46,7 +46,9 @@ defmodule NameBadge.MixProject do
       {:toolshed, "~> 0.4.0"},
       {:slipstream, "~> 1.2"},
       {:req, "~> 0.5"},
-      {:dither, "~> 0.1.1"},
+      # eink's grayscale drawing pipeline needs dither 0.2; override the
+      # transitive 0.1 constraint from the older eink API.
+      {:dither, "~> 0.2.4", override: true},
       {:typst, "~> 0.3"},
       {:qr_code, "~> 3.2.0"},
       {:tzdata, "~> 1.1"},
@@ -61,7 +63,13 @@ defmodule NameBadge.MixProject do
       {:nerves_pack, "~> 0.7.1", targets: @all_targets},
       {:circuits_spi, "~> 2.0", targets: @all_targets},
       {:circuits_gpio, "~> 2.1.3", targets: @all_targets},
-      {:eink, github: "protolux-electronics/eink", targets: @all_targets},
+      # Display calibration needs the runtime waveform-override API
+      # (EInk.set_waveform/2) + the 4-gray drawing pipeline. Both live on
+      # protolux-electronics/eink#12, whose head branch is this fork branch.
+      # BLOCKER: swap to protolux-electronics/eink (hex or tag) once #12 merges
+      # and a release is cut — this PR can't merge before that.
+      {:eink,
+       github: "markomitranic/eink", branch: "waveform-override-api", targets: @all_targets},
       {:vintage_net_wizard,
        github: "nerves-networking/vintage_net_wizard", targets: @all_targets},
 

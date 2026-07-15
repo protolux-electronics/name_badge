@@ -64,6 +64,10 @@ defmodule NameBadge.Screen do
   end
 
   def handle_continue({:render, render_opts}, screen) do
+    # Screens can set EInk draw options (e.g. mode: :grayscale) via a
+    # :render_opts assign, same pattern as :button_hints.
+    render_opts = Keyword.merge(render_opts, Map.get(screen.assigns, :render_opts, []))
+
     # this is blocking, takes about 1s
     screen.module.render(screen.assigns)
     |> case do

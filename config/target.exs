@@ -22,6 +22,21 @@ config :nerves, :erlinit, update_clock: true
 # set tzdata dir for Nerves device
 config :tzdata, :data_dir, "/data/tzdata"
 
+# E-ink display (new drawing-pipeline API). Started as a named GenServer from
+# the supervision tree; drivers read this app env in EInk.init/1.
+config :eink,
+  driver: EInk.Driver.UC8276,
+  width: 400,
+  height: 300,
+  driver_config: [
+    dc_pin: "EPD_DC",
+    reset_pin: "EPD_RESET",
+    busy_pin: "EPD_BUSY",
+    spi_device: "spidev0.0",
+    spi_opts: [speed_hz: 1_000_000],
+    debug: false
+  ]
+
 # Configure the device for SSH IEx prompt access and firmware updates
 #
 # * See https://hexdocs.pm/nerves_ssh/readme.html for general SSH configuration

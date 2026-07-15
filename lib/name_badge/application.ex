@@ -23,7 +23,13 @@ defmodule NameBadge.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: NameBadge.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+
+    # EInk forgets waveform overrides on restart, so re-apply any saved
+    # grayscale calibration now that EInk is up (no-op on host / default value).
+    NameBadge.Calibration.apply_saved!()
+
+    result
   end
 
   # List all child processes to be supervised
@@ -44,6 +50,9 @@ defmodule NameBadge.Application do
       button_spec(:button_1),
       button_spec(:button_2),
       NameBadge.Battery,
+      # EInk singleton (configured via `config :eink`) must start before Display,
+      # which paints the boot frame through it.
+      EInk,
       NameBadge.Display,
       NameBadge.TimezoneService,
       NameBadge.Weather,

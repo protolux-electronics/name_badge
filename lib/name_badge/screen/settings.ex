@@ -8,7 +8,8 @@ defmodule NameBadge.Screen.Settings do
     {"WiFi Settings", Settings.WiFi},
     {"Tutorial", Settings.Tutorial},
     {"Sudo Mode", Settings.SudoMode},
-    {"System Info", Settings.SystemInfo}
+    {"System Info", Settings.SystemInfo},
+    {"Calibrate Display", Settings.Calibrate}
   ]
 
   @impl NameBadge.Screen
